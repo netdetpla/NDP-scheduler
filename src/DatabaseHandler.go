@@ -8,7 +8,11 @@ import (
 	"time"
 )
 
-var scanOpt = make(chan string, 50)
+type dbOpt struct {
+	operation string
+	param []string
+}
+var scanOpt = make(chan dbOpt, 50)
 
 type imageInfo struct {
 	imageName string
@@ -45,19 +49,22 @@ func checkImage(db *sql.DB, taskID int) (err error) {
 		if err != nil {
 			return
 		}
-		var uploadOneImage []*imageInfo
 		for !rows.Next() {
 			i := new(imageInfo)
 			err = rows.Scan(&i.imageName, &i.tag, &i.fileName)
 			if err != nil {
 				return
 			}
-			uploadOneImage = append(uploadOneImage, i)
+			loadOpt <- *i
 		}
-		// TODO docker操作
-
 		return
 	}
+}
+
+func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err error){
+	updateSQL := "update image set is_loaded = 1 where image_name = ? and tag = ?"
+	_, err = db.Exec(updateSQL, imageName, tag)
+	return
 }
 
 func scanTask(db *sql.DB) (err error) {
@@ -87,17 +94,14 @@ func scanImage(db *sql.DB) (err error) {
 	if err != nil {
 		return
 	}
-	var waitLoadingImages []*imageInfo
 	for !rows.Next() {
 		i := new(imageInfo)
 		err = rows.Scan(&i.imageName, &i.tag, &i.fileName)
 		if err != nil {
 			return
 		}
-		waitLoadingImages = append(waitLoadingImages, i)
+		loadOpt <- *i
 	}
-	// TODO docker操作
-
 	return
 }
 
@@ -105,7 +109,7 @@ func scanImage(db *sql.DB) (err error) {
 func taskTimer() {
 	for true {
 		time.Sleep(30 * time.Second)
-		scanOpt <- "task"
+		scanOpt <- dbOpt{"task", []string{}}
 	}
 }
 
@@ -113,7 +117,7 @@ func taskTimer() {
 func imageTimer() {
 	for true {
 		time.Sleep(600 * time.Second)
-		scanOpt <- "image"
+		scanOpt <-  dbOpt{"image", []string{}}
 	}
 }
 
@@ -137,20 +141,28 @@ func databaseScanner(databaseInfo *database) (err error) {
 	// 启动定时器
 	go taskTimer()
 	go imageTimer()
-	for true {
+	for {
 		// 读取channel里消息并调用对应方法，没有则阻塞等待
-		switch <-scanOpt {
+		so := <- scanOpt
+		switch so.operation {
 		case "image":
 			err = scanImage(db)
 			if err != nil {
-				return
+				// TODO 错误处理
+				continue
 			}
 		case "task":
 			err = scanTask(db)
 			if err != nil {
-				return
+				// TODO 错误处理
+				continue
+			}
+		case "loaded":
+			err = updateImageLoadedStatus(db, so.param[0], so.param[1])
+			if err != nil {
+				// TODO 错误处理
+				continue
 			}
 		}
 	}
-	return
 }

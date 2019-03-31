@@ -25,6 +25,7 @@ type database struct {
 
 type image struct {
 	Path string `json:"path"`
+	RepoPort float64 `json:"repo_port"`
 }
 
 type config struct {

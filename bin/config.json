@@ -11,6 +11,7 @@
     "password": "password"
   },
   "image": {
-    "path": "/root/image/"
+    "path": "/root/image/",
+    "repo_port": 5000
   }
 }
