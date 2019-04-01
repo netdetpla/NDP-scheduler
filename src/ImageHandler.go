@@ -10,7 +10,7 @@ import (
 
 var loadOpt = make(chan imageInfo, 10)
 
-func imageLoaderWithShell(imageConf *image) (err error){
+func imageLoader(imageConf *image) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {

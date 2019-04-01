@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
@@ -10,9 +9,8 @@ import (
 
 type dbOpt struct {
 	operation string
-	param []string
+	param     []string
 }
-var scanOpt = make(chan dbOpt, 50)
 
 type imageInfo struct {
 	imageName string
@@ -27,41 +25,44 @@ type taskInfo struct {
 	param     string
 }
 
-func checkImage(db *sql.DB, taskID int) (err error) {
+var scanOpt = make(chan dbOpt, 50)
+var checkReq = make(chan int, 1)
+
+func checkImage(db *sql.DB, taskID int) (checkFlag bool) {
 	checkImageSQL := "select is_loaded from image where image.id in (select image_id from task where id = ?)"
 	rows, err := db.Query(checkImageSQL, taskID)
 	if err != nil {
 		return
 	}
 	if !rows.Next() {
-		return errors.New("image was not found")
+		return false
 	}
 	var isLoaded int
 	err = rows.Scan(&isLoaded)
 	if err != nil {
-		return
+		return false
 	}
 	if isLoaded == 1 {
-		return
+		return true
 	} else {
 		uploadOneImageSQL := "select image_name, tag, file_name from image where id in (select image_id from task where id = ?)"
 		rows, err := db.Query(uploadOneImageSQL, taskID)
 		if err != nil {
-			return
+			return false
 		}
 		for !rows.Next() {
 			i := new(imageInfo)
 			err = rows.Scan(&i.imageName, &i.tag, &i.fileName)
 			if err != nil {
-				return
+				return false
 			}
 			loadOpt <- *i
 		}
-		return
+		return false
 	}
 }
 
-func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err error){
+func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err error) {
 	updateSQL := "update image set is_loaded = 1 where image_name = ? and tag = ?"
 	_, err = db.Exec(updateSQL, imageName, tag)
 	return
@@ -73,17 +74,16 @@ func scanTask(db *sql.DB) (err error) {
 	if err != nil {
 		return
 	}
-	var tasks []*taskInfo
 	for !rows.Next() {
 		i := new(taskInfo)
 		err = rows.Scan(&i.id, &i.imageName, &i.tag, &i.param)
 		if err != nil {
 			return
 		}
-		tasks = append(tasks, i)
+		if checkImage(db, i.id) {
+			taskQueue <- *i
+		}
 	}
-	// TODO 下发操作
-
 	return
 }
 
@@ -117,12 +117,12 @@ func taskTimer() {
 func imageTimer() {
 	for true {
 		time.Sleep(600 * time.Second)
-		scanOpt <-  dbOpt{"image", []string{}}
+		scanOpt <- dbOpt{"image", []string{}}
 	}
 }
 
 // 根据定时器信号启动对应的数据库查询操作
-func databaseScanner(databaseInfo *database) (err error) {
+func databaseScanner(databaseInfo *database) {
 	databaseURL := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?timeout=20s",
 		databaseInfo.Username,
@@ -132,10 +132,12 @@ func databaseScanner(databaseInfo *database) (err error) {
 		databaseInfo.DatabaseName)
 	db, err := sql.Open("mysql", databaseURL)
 	if err != nil {
+		// TODO 错误处理
 		return
 	}
 	// 测试数据库连接
 	if err = db.Ping(); err != nil {
+		// TODO 错误处理
 		return
 	}
 	// 启动定时器
@@ -143,7 +145,7 @@ func databaseScanner(databaseInfo *database) (err error) {
 	go imageTimer()
 	for {
 		// 读取channel里消息并调用对应方法，没有则阻塞等待
-		so := <- scanOpt
+		so := <-scanOpt
 		switch so.operation {
 		case "image":
 			err = scanImage(db)
