@@ -72,12 +72,14 @@ func scanTask(db *sql.DB) (err error) {
 	taskSQL := "select task.id, image.image_name, image.tag, task.param from task, image where task.task_status = 20000 and task.image_id = image.id"
 	rows, err := db.Query(taskSQL)
 	if err != nil {
+		fmt.Print(err.Error())
 		return
 	}
 	for !rows.Next() {
 		i := new(taskInfo)
 		err = rows.Scan(&i.id, &i.imageName, &i.tag, &i.param)
 		if err != nil {
+			fmt.Print(err.Error())
 			return
 		}
 		if checkImage(db, i.id) {
@@ -92,12 +94,14 @@ func scanImage(db *sql.DB) (err error) {
 	imageSQL := "select image_name, tag, file_name from image where is_loaded = 0"
 	rows, err := db.Query(imageSQL)
 	if err != nil {
+		fmt.Print(err.Error())
 		return
 	}
 	for !rows.Next() {
 		i := new(imageInfo)
 		err = rows.Scan(&i.imageName, &i.tag, &i.fileName)
 		if err != nil {
+			fmt.Print(err.Error())
 			return
 		}
 		loadOpt <- *i
@@ -133,11 +137,13 @@ func databaseScanner(databaseInfo *database) {
 		databaseInfo.DatabaseName)
 	db, err := sql.Open("mysql", databaseURL)
 	if err != nil {
+		fmt.Print(err.Error())
 		// TODO 错误处理
 		return
 	}
 	// 测试数据库连接
 	if err = db.Ping(); err != nil {
+		fmt.Print(err.Error())
 		// TODO 错误处理
 		return
 	}
@@ -151,6 +157,7 @@ func databaseScanner(databaseInfo *database) {
 		case "image":
 			err = scanImage(db)
 			if err != nil {
+				fmt.Print(err.Error())
 				// TODO 错误处理
 				continue
 			}
@@ -158,12 +165,14 @@ func databaseScanner(databaseInfo *database) {
 			err = scanTask(db)
 			if err != nil {
 				// TODO 错误处理
+				fmt.Print(err.Error())
 				continue
 			}
 		case "loaded":
 			err = updateImageLoadedStatus(db, so.param[0], so.param[1])
 			if err != nil {
 				// TODO 错误处理
+				fmt.Print(err.Error())
 				continue
 			}
 		}

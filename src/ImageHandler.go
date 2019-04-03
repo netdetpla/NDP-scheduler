@@ -24,12 +24,14 @@ func imageLoader(imageConf *image) {
 		imageFile, err := os.Open(imageConf.Path + i.fileName)
 		if err != nil {
 			// TODO 错误处理
+			fmt.Print(err.Error())
 			continue
 		}
 		// docker load
 		_, err = cli.ImageLoad(ctx, imageFile, false)
 		if err != nil {
 			// TODO 错误处理
+			fmt.Print(err.Error())
 			continue
 		}
 		// docker tag
@@ -41,6 +43,7 @@ func imageLoader(imageConf *image) {
 		// docker push
 		_, err = cli.ImagePush(ctx, "localhost:" + portStr + "/" + i.imageName + ":" + i.tag, types.ImagePushOptions{})
 		if err != nil {
+			fmt.Print(err.Error())
 			// TODO 错误处理
 			continue
 		}
