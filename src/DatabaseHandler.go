@@ -144,6 +144,8 @@ func databaseScanner(databaseInfo *database) {
 	// 启动定时器
 	go taskTimer()
 	go imageTimer()
+	scanOpt <- dbOpt{"image", []string{}}
+	scanOpt <- dbOpt{"task", []string{}}
 	for {
 		// 读取channel里消息并调用对应方法，没有则阻塞等待
 		so := <-scanOpt
