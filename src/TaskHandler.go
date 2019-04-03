@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"strconv"
 	"time"
@@ -19,6 +20,7 @@ type dispatch struct {
 var taskQueue = make(chan taskInfo, 50)
 
 func taskSender(addr *server) {
+	fmt.Println("th start")
 	for {
 		portStr := strconv.FormatFloat(addr.Port, 'f', -1, 64)
 		conn, err := net.Dial("tcp", addr.Ip+":"+portStr)

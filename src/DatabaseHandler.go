@@ -123,6 +123,7 @@ func imageTimer() {
 
 // 根据定时器信号启动对应的数据库查询操作
 func databaseScanner(databaseInfo *database) {
+	fmt.Println("dbh start")
 	databaseURL := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?timeout=20s",
 		databaseInfo.Username,

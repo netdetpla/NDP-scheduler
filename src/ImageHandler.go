@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
@@ -11,6 +12,7 @@ import (
 var loadOpt = make(chan imageInfo, 10)
 
 func imageLoader(imageConf *image) {
+	fmt.Println("ih start")
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
