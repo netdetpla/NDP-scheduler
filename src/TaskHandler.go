@@ -26,6 +26,7 @@ func taskSender(addr *server) {
 		conn, err := net.Dial("tcp", addr.Ip+":"+portStr)
 		if err != nil {
 			// TODO 错误处理
+			fmt.Print(err.Error())
 			time.Sleep(time.Second * 10)
 			continue
 		}
@@ -34,10 +35,12 @@ func taskSender(addr *server) {
 		b, err := json.Marshal(d)
 		if err != nil {
 			// TODO 错误处理
+			fmt.Print(err.Error())
 			time.Sleep(time.Second * 10)
 			continue
 		}
 		_, err = conn.Write(b)
+		fmt.Print(err.Error())
 		// TODO 错误处理
 		time.Sleep(time.Second * 10)
 	}
