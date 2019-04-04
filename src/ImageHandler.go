@@ -6,7 +6,6 @@ import (
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
 	"os"
-	"strconv"
 )
 
 var loadOpt = make(chan imageInfo, 10)
@@ -14,7 +13,7 @@ var loadOpt = make(chan imageInfo, 10)
 func imageLoader(imageConf *image) {
 	fmt.Println("ih start")
 	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := client.NewClientWithOpts(client.WithVersion("1.39"))
 	if err != nil {
 		return
 	}
@@ -36,12 +35,11 @@ func imageLoader(imageConf *image) {
 		}
 		// docker tag
 		// TODO 测试参数是否正确
-		portStr := strconv.FormatFloat(imageConf.RepoPort, 'f', -1, 64)
 		err = cli.ImageTag(ctx,
 			i.imageName + ":" + i.tag,
-			"localhost:" + portStr + "/" + i.imageName + ":" + i.tag)
+			"localhost:" + imageConf.RepoPort + "/" + i.imageName + ":" + i.tag)
 		// docker push
-		_, err = cli.ImagePush(ctx, "localhost:" + portStr + "/" + i.imageName + ":" + i.tag, types.ImagePushOptions{})
+		_, err = cli.ImagePush(ctx, "localhost:" + imageConf.RepoPort + "/" + i.imageName + ":" + i.tag, types.ImagePushOptions{All: true, RegistryAuth: "123"})
 		if err != nil {
 			fmt.Print(err.Error())
 			// TODO 错误处理

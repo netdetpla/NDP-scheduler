@@ -1,17 +1,17 @@
 {
   "server": {
     "ip": "127.0.0.1",
-    "port": 9899
+    "port": "9899"
   },
   "database": {
     "host": "192.168.226.11",
-    "port": 3306,
+    "port": "3306",
     "database_name": "ndp",
     "username": "root",
     "password": "password"
   },
   "image": {
     "path": "/root/image/",
-    "repo_port": 5000
+    "repo_port": "5000"
   }
 }

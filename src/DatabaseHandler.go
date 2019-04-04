@@ -50,7 +50,7 @@ func checkImage(db *sql.DB, taskID int) (checkFlag bool) {
 		if err != nil {
 			return false
 		}
-		for !rows.Next() {
+		for rows.Next() {
 			i := new(imageInfo)
 			err = rows.Scan(&i.imageName, &i.tag, &i.fileName)
 			if err != nil {
@@ -73,13 +73,15 @@ func scanTask(db *sql.DB) (err error) {
 	rows, err := db.Query(taskSQL)
 	if err != nil {
 		fmt.Print(err.Error())
+		fmt.Print(21)
 		return
 	}
-	for !rows.Next() {
+	for rows.Next() {
 		i := new(taskInfo)
 		err = rows.Scan(&i.id, &i.imageName, &i.tag, &i.param)
 		if err != nil {
 			fmt.Print(err.Error())
+			fmt.Print(22)
 			return
 		}
 		if checkImage(db, i.id) {
@@ -97,7 +99,7 @@ func scanImage(db *sql.DB) (err error) {
 		fmt.Print(err.Error())
 		return
 	}
-	for !rows.Next() {
+	for rows.Next() {
 		i := new(imageInfo)
 		err = rows.Scan(&i.imageName, &i.tag, &i.fileName)
 		if err != nil {
@@ -129,7 +131,7 @@ func imageTimer() {
 func databaseScanner(databaseInfo *database) {
 	fmt.Println("dbh start")
 	databaseURL := fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?timeout=20s",
+		"%s:%s@tcp(%s:%s)/%s?timeout=20s",
 		databaseInfo.Username,
 		databaseInfo.Password,
 		databaseInfo.Host,
@@ -160,6 +162,7 @@ func databaseScanner(databaseInfo *database) {
 			err = scanImage(db)
 			if err != nil {
 				fmt.Print(err.Error())
+				fmt.Print(1)
 				// TODO 错误处理
 				continue
 			}
@@ -167,6 +170,7 @@ func databaseScanner(databaseInfo *database) {
 			err = scanTask(db)
 			if err != nil {
 				// TODO 错误处理
+				fmt.Print(2)
 				fmt.Print(err.Error())
 				continue
 			}
@@ -175,6 +179,7 @@ func databaseScanner(databaseInfo *database) {
 			if err != nil {
 				// TODO 错误处理
 				fmt.Print(err.Error())
+				fmt.Print(3)
 				continue
 			}
 		}
