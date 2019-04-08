@@ -41,7 +41,6 @@ func imageLoader(imageConf *image) {
 			continue
 		}
 		// docker tag
-		// TODO 测试参数是否正确
 		err = cli.ImageTag(ctx,
 			i.imageName + ":" + i.tag,
 			"localhost:" + imageConf.RepoPort + "/" + i.imageName + ":" + i.tag)

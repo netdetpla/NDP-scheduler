@@ -23,10 +23,16 @@ type taskInfo struct {
 	imageName string
 	tag       string
 	param     string
+	priority int
 }
 
 var scanOpt = make(chan dbOpt, 50)
-var checkReq = make(chan int, 1)
+
+func updateTaskStatus(db *sql.DB, status, taskID string) (err error) {
+	updateTaskStatusSQL := "update task set task_status = ? where id = ?"
+	_, err = db.Exec(updateTaskStatusSQL, status, taskID)
+	return
+}
 
 func checkImage(db *sql.DB, taskID int) (checkFlag bool) {
 	checkImageSQL := "select is_loaded from image where image.id in (select image_id from task where id = ?)"
@@ -69,7 +75,7 @@ func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err erro
 }
 
 func scanTask(db *sql.DB) (err error) {
-	taskSQL := "select task.id, image.image_name, image.tag, task.param from task, image where task.task_status = 20000 and task.image_id = image.id"
+	taskSQL := "select task.id, image.image_name, image.tag, task.param, task.priority from task, image where task.task_status = 20000 and task.image_id = image.id"
 	rows, err := db.Query(taskSQL)
 	if err != nil {
 		fmt.Print(err.Error())
@@ -78,7 +84,7 @@ func scanTask(db *sql.DB) (err error) {
 	}
 	for rows.Next() {
 		i := new(taskInfo)
-		err = rows.Scan(&i.id, &i.imageName, &i.tag, &i.param)
+		err = rows.Scan(&i.id, &i.imageName, &i.tag, &i.param, &i.priority)
 		if err != nil {
 			fmt.Print(err.Error())
 			fmt.Print(22)
@@ -139,14 +145,12 @@ func databaseScanner(databaseInfo *database) {
 		databaseInfo.DatabaseName)
 	db, err := sql.Open("mysql", databaseURL)
 	if err != nil {
-		fmt.Print(err.Error())
-		// TODO 错误处理
+		log.Warning(err.Error())
 		return
 	}
 	// 测试数据库连接
 	if err = db.Ping(); err != nil {
-		fmt.Print(err.Error())
-		// TODO 错误处理
+		log.Warning(err.Error())
 		return
 	}
 	// 启动定时器
@@ -160,27 +164,15 @@ func databaseScanner(databaseInfo *database) {
 		switch so.operation {
 		case "image":
 			err = scanImage(db)
-			if err != nil {
-				fmt.Print(err.Error())
-				fmt.Print(1)
-				// TODO 错误处理
-				continue
-			}
 		case "task":
 			err = scanTask(db)
-			if err != nil {
-				// TODO 错误处理
-				fmt.Print(2)
-				fmt.Print(err.Error())
-				continue
-			}
 		case "loaded":
 			err = updateImageLoadedStatus(db, so.param[0], so.param[1])
+		case "task-status":
+			err = updateTaskStatus(db, so.param[0], so.param[1])
+		default:
 			if err != nil {
-				// TODO 错误处理
-				fmt.Print(err.Error())
-				fmt.Print(3)
-				continue
+				log.Warning("operation error: " + err.Error())
 			}
 		}
 	}
