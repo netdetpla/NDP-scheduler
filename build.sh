@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-CGO_ENABLED=0 go build -o ./bin/NDP-scheduler ./src/*.go
+CGO_ENABLED=0 go build -o /ns/bin/NDP-scheduler /ns/src/*.go

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strconv"
 	"time"
 )
 
@@ -15,6 +14,8 @@ type param struct {
 type dispatch struct {
 	ImageName string  `json:"image_name"`
 	ParamList []param `json:"parameter_list"`
+	BusiName string `json:"busi_name"`
+	Hash string `json:"hash"`
 }
 
 var taskQueue = make(chan taskInfo, 50)
@@ -22,8 +23,7 @@ var taskQueue = make(chan taskInfo, 50)
 func taskSender(addr *server) {
 	fmt.Println("th start")
 	for {
-		portStr := strconv.FormatFloat(addr.Port, 'f', -1, 64)
-		conn, err := net.Dial("tcp", addr.Ip+":"+portStr)
+		conn, err := net.Dial("tcp", addr.Ip + ":" + addr.Port)
 		if err != nil {
 			// TODO 错误处理
 			fmt.Print(err.Error())
@@ -31,7 +31,7 @@ func taskSender(addr *server) {
 			continue
 		}
 		t := <-taskQueue
-		d := dispatch{t.imageName, []param{{t.param}}}
+		d := dispatch{t.imageName + ":" + t.tag, []param{{t.param}}, "iie", "abcd"}
 		b, err := json.Marshal(d)
 		if err != nil {
 			// TODO 错误处理
@@ -40,7 +40,6 @@ func taskSender(addr *server) {
 			continue
 		}
 		_, err = conn.Write(b)
-		fmt.Print(err.Error())
 		// TODO 错误处理
 		time.Sleep(time.Second * 10)
 	}

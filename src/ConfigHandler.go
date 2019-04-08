@@ -12,12 +12,12 @@ import (
 
 type server struct {
 	Ip   string  `json:"ip"`
-	Port float64 `json:"port"`
+	Port string `json:"port"`
 }
 
 type database struct {
 	Host         string  `json:"host"`
-	Port         float64 `json:"port"`
+	Port         string `json:"port"`
 	DatabaseName string  `json:"database_name"`
 	Username     string  `json:"username"`
 	Password     string  `json:"password"`
@@ -25,7 +25,7 @@ type database struct {
 
 type image struct {
 	Path string `json:"path"`
-	RepoPort float64 `json:"repo_port"`
+	RepoPort string `json:"repo_port"`
 }
 
 type config struct {
