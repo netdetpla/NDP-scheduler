@@ -11,27 +11,34 @@ import (
 
 var loadOpt = make(chan imageInfo, 10)
 
+func imageInfo2String(i imageInfo) (s string){
+	s = fmt.Sprintf("image name: %s, tag: %s, file name: %s", i.imageName, i.tag, i.fileName)
+	return
+}
+
 func imageLoader(imageConf *image) {
-	fmt.Println("ih start")
+	log.Notice("image loader started.")
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
+		log.Error(err.Error())
 		return
 	}
 	for {
 		i := <- loadOpt
+		log.Debugf(imageInfo2String(i))
 		// 读文件
 		imageFile, err := os.Open(imageConf.Path + i.fileName)
 		if err != nil {
 			// TODO 错误处理
-			fmt.Print(err.Error())
+			log.Warning(err.Error())
 			continue
 		}
 		// docker load
 		_, err = cli.ImageLoad(ctx, imageFile, false)
 		if err != nil {
 			// TODO 错误处理
-			fmt.Print(err.Error())
+			log.Warning(err.Error())
 			continue
 		}
 		// docker tag
@@ -40,11 +47,16 @@ func imageLoader(imageConf *image) {
 		err = cli.ImageTag(ctx,
 			i.imageName + ":" + i.tag,
 			"localhost:" + portStr + "/" + i.imageName + ":" + i.tag)
+		if err != nil {
+			// TODO 错误处理
+			log.Warning(err.Error())
+			continue
+		}
 		// docker push
 		_, err = cli.ImagePush(ctx, "localhost:" + portStr + "/" + i.imageName + ":" + i.tag, types.ImagePushOptions{})
 		if err != nil {
-			fmt.Print(err.Error())
 			// TODO 错误处理
+			log.Warning(err.Error())
 			continue
 		}
 		scanOpt <- dbOpt{"loaded", []string{i.imageName, i.tag}}
