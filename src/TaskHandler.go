@@ -19,7 +19,6 @@ type sendTaskJSON struct {
 var taskQueue = make(chan taskInfo, 50)
 
 func taskSender(addr *server, t taskInfo) (err error) {
-	fmt.Println("th start")
 	d := sendTaskJSON{strconv.Itoa(t.id), t.imageName, t.tag, t.param}
 	b, err := json.Marshal(d)
 	//TODO 节点选择，目前不实现
@@ -74,6 +73,7 @@ func (tq *taskPriorityQueue) Push(x interface{}) {
 	t.index = n
 	*tq = append(*tq, t)
 }
+
 func handleNewTask(tq *taskPriorityQueue, t *taskInfo) {
 	n := len(*tq)
 	if n > MaxLen {
@@ -88,7 +88,6 @@ func handleNewTask(tq *taskPriorityQueue, t *taskInfo) {
 			scanOpt <- dbOpt{"task-status", []string{
 				strconv.Itoa((*tq)[n-1].task.id),
 				strconv.Itoa(20000)}}
-
 		}
 	} else {
 		// 队列未满
@@ -98,6 +97,7 @@ func handleNewTask(tq *taskPriorityQueue, t *taskInfo) {
 				strconv.Itoa(20010)}}
 	}
 }
+
 func taskQueueManager(addr *server) {
 	log.Notice("task queue manager started.")
 	tq := make(taskPriorityQueue, MaxLen)
