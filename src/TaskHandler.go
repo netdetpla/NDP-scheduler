@@ -93,15 +93,25 @@ func handleNewTask(tq *taskPriorityQueue, t *taskInfo) {
 		// 队列未满
 		heap.Push(tq, t)
 		scanOpt <- dbOpt{"task-status", []string{
-				strconv.Itoa(t.id),
-				strconv.Itoa(20010)}}
+			strconv.Itoa(t.id),
+			strconv.Itoa(20010)}}
 	}
 }
 
 func taskQueueManager(addr *server) {
 	log.Notice("task queue manager started.")
 	tq := make(taskPriorityQueue, MaxLen)
+	tq[0] = &taskItem{
+		task: &taskInfo{
+			imageName: "",
+			tag:       "",
+			id:        0,
+			param:     ""},
+		priority: 11,
+		index:    0}
 	heap.Init(&tq)
+	heap.Pop(&tq)
+
 	/*
 		大致思路为消费taskQueue中任务加入优先级队列，然后开始下发
 		1. 入队阶段
@@ -125,7 +135,7 @@ func taskQueueManager(addr *server) {
 		// 下发阶段
 		// TODO 资源判断
 		for len(tq) > 0 {
-			err := taskSender(addr, *tq[0].task)
+			err := taskSender(addr, *heap.Pop(&tq).(*taskItem).task)
 			if err != nil {
 				// TODO 错误处理
 				log.Warning(err.Error())
