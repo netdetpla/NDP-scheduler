@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-CGO_ENABLED=0 go build -o /ns/bin/NDP-scheduler.b /ns/src/*.go
+docker run -v /root/ndp/NDP-scheduler/bin/:/ns/bin/ -e "CGO_ENABLED=0" ndp-scheduler-builder:test
