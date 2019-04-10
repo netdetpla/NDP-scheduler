@@ -51,7 +51,7 @@ func (tq taskPriorityQueue) Len() int {
 }
 
 func (tq taskPriorityQueue) Less(i, j int) bool {
-	return tq[i].priority < tq[j].priority
+	return tq[i].priority > tq[j].priority
 }
 
 func (tq taskPriorityQueue) Swap(i, j int) {
@@ -100,17 +100,18 @@ func handleNewTask(tq *taskPriorityQueue, t *taskInfo) {
 
 func taskQueueManager(addr *server) {
 	log.Notice("task queue manager started.")
-	tq := make(taskPriorityQueue, MaxLen)
-	tq[0] = &taskItem{
-		task: &taskInfo{
-			imageName: "",
-			tag:       "",
-			id:        0,
-			param:     ""},
-		priority: 11,
-		index:    0}
+	tq := make(taskPriorityQueue, 0)
+	//tq[0] = &taskItem{
+	//	task: &taskInfo{
+	//		imageName: "",
+	//		tag:       "",
+	//		id:        0,
+	//		param:     ""},
+	//	priority: 11,
+	//	index:    0}
+	//log.Debug("tq: ", tq)
 	heap.Init(&tq)
-	heap.Pop(&tq)
+	//heap.Pop(&tq)
 
 	/*
 		大致思路为消费taskQueue中任务加入优先级队列，然后开始下发

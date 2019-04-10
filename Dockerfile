@@ -8,7 +8,7 @@ RUN mkdir -p $GOPATH/src/golang.org/x/ \
     && go get github.com/docker/docker/api/types \
     && go get github.com/op/go-logging 
 
-ADD ["./", "/ns/"]
+# ADD ["./", "/ns/"]
 
 WORKDIR /ns/src
 
