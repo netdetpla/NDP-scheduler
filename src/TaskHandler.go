@@ -23,6 +23,7 @@ func taskSender(addr *server, t taskInfo) (err error) {
 	b, err := json.Marshal(d)
 	//TODO 节点选择，目前不实现
 	conn, err := net.Dial("tcp", addr.Ip+":"+addr.Port)
+	defer conn.Close()
 	if err != nil {
 		// TODO 错误处理
 		fmt.Print(err.Error())
@@ -87,18 +88,18 @@ func handleNewTask(tq *taskPriorityQueue, ti *taskInfo) {
 			(*tq)[n-1].priority = ti.priority
 			(*tq)[n-1].task = ti
 			scanOpt <- dbOpt{"task-status", []string{
-				strconv.Itoa(ti.id),
-				strconv.Itoa(20010)}}
+				strconv.Itoa(20010),
+				strconv.Itoa(ti.id)}}
 			scanOpt <- dbOpt{"task-status", []string{
-				strconv.Itoa((*tq)[n-1].task.id),
-				strconv.Itoa(20000)}}
+				strconv.Itoa(20000),
+				strconv.Itoa((*tq)[n-1].task.id)}}
 		}
 	} else {
 		// 队列未满
 		heap.Push(tq, t)
 		scanOpt <- dbOpt{"task-status", []string{
-			strconv.Itoa(ti.id),
-			strconv.Itoa(20010)}}
+			strconv.Itoa(20010),
+			strconv.Itoa(ti.id)}}
 	}
 }
 

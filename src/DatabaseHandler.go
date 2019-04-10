@@ -135,7 +135,7 @@ func imageTimer() {
 
 // 根据定时器信号启动对应的数据库查询操作
 func databaseScanner(databaseInfo *database) {
-	fmt.Println("dbh start")
+	log.Notice("database scanner started.")
 	databaseURL := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?timeout=20s",
 		databaseInfo.Username,
@@ -171,6 +171,7 @@ func databaseScanner(databaseInfo *database) {
 		case "task-status":
 			err = updateTaskStatus(db, so.param[0], so.param[1])
 		default:
+			log.Debug(so.operation, so.param)
 			if err != nil {
 				log.Warning("operation error: " + err.Error())
 			}
