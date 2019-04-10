@@ -74,16 +74,20 @@ func (tq *taskPriorityQueue) Push(x interface{}) {
 	*tq = append(*tq, t)
 }
 
-func handleNewTask(tq *taskPriorityQueue, t *taskInfo) {
+func handleNewTask(tq *taskPriorityQueue, ti *taskInfo) {
 	n := len(*tq)
+	t := &taskItem{
+		task:     ti,
+		priority: ti.priority,
+		index:    -1}
 	if n > MaxLen {
 		// 队列已满
 		if t.priority < (*tq)[n-1].priority {
 			// 队外任务优先级高
-			(*tq)[n-1].priority = t.priority
-			(*tq)[n-1].task = t
+			(*tq)[n-1].priority = ti.priority
+			(*tq)[n-1].task = ti
 			scanOpt <- dbOpt{"task-status", []string{
-				strconv.Itoa(t.id),
+				strconv.Itoa(ti.id),
 				strconv.Itoa(20010)}}
 			scanOpt <- dbOpt{"task-status", []string{
 				strconv.Itoa((*tq)[n-1].task.id),
@@ -93,7 +97,7 @@ func handleNewTask(tq *taskPriorityQueue, t *taskInfo) {
 		// 队列未满
 		heap.Push(tq, t)
 		scanOpt <- dbOpt{"task-status", []string{
-			strconv.Itoa(t.id),
+			strconv.Itoa(ti.id),
 			strconv.Itoa(20010)}}
 	}
 }
@@ -101,17 +105,7 @@ func handleNewTask(tq *taskPriorityQueue, t *taskInfo) {
 func taskQueueManager(addr *server) {
 	log.Notice("task queue manager started.")
 	tq := make(taskPriorityQueue, 0)
-	//tq[0] = &taskItem{
-	//	task: &taskInfo{
-	//		imageName: "",
-	//		tag:       "",
-	//		id:        0,
-	//		param:     ""},
-	//	priority: 11,
-	//	index:    0}
-	//log.Debug("tq: ", tq)
 	heap.Init(&tq)
-	//heap.Pop(&tq)
 
 	/*
 		大致思路为消费taskQueue中任务加入优先级队列，然后开始下发
