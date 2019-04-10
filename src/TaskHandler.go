@@ -23,12 +23,18 @@ func taskSender(addr *server, t taskInfo) (err error) {
 	b, err := json.Marshal(d)
 	//TODO 节点选择，目前不实现
 	conn, err := net.Dial("tcp", addr.Ip+":"+addr.Port)
-	defer conn.Close()
 	if err != nil {
 		// TODO 错误处理
 		fmt.Print(err.Error())
 		return
 	}
+	defer func() {
+		err = conn.Close()
+		if err != nil {
+			log.Warning(err.Error())
+		}
+	}()
+
 	_, err = conn.Write(b)
 	if err != nil {
 		// TODO 错误处理

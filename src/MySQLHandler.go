@@ -148,6 +148,12 @@ func databaseScanner(databaseInfo *database) {
 		log.Warning(err.Error())
 		return
 	}
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			log.Warning(err.Error())
+		}
+	}()
 	// 测试数据库连接
 	if err = db.Ping(); err != nil {
 		log.Warning(err.Error())
