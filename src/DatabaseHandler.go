@@ -192,7 +192,6 @@ func databaseScanner(databaseInfo *database) {
 	err = igniteDB.CacheCreateWithName(igniteCache)
 	if err != nil {
 		log.Warning(err.Error())
-		return
 	}
 	// 初始化ignite task表
 	initIgniteTable(&igniteDB)
