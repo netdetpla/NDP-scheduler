@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/amsokol/ignite-go-client/binary/v1"
+	_ "github.com/amsokol/ignite-go-client/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
 )
@@ -23,10 +25,29 @@ type taskInfo struct {
 	imageName string
 	tag       string
 	param     string
-	priority int
+	priority  int
 }
 
 var scanOpt = make(chan dbOpt, 50)
+var igniteCache = "ndpTaskCache"
+
+func initIgniteTable(c *ignite.Client) {
+	query := "CREATE TABLE task (" +
+		"id int PRIMARY KEY," +
+		"task_name char(128)," +
+		"image_id int," +
+		"start_time char(32)," +
+		"end_time char(32)," +
+		"param text," +
+		"task_status int," +
+		"priority int," +
+		"tid int)"
+	_, err := (*c).QuerySQL(igniteCache, false, ignite.QuerySQLData{Query: query})
+	if err != nil {
+		log.Warning(err.Error())
+		return
+	}
+}
 
 func updateTaskStatus(db *sql.DB, status, taskID string) (err error) {
 	updateTaskStatusSQL := "update task set task_status = ? where id = ?"
@@ -74,26 +95,18 @@ func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err erro
 	return
 }
 
-func scanTask(db *sql.DB) (err error) {
-	taskSQL := "select task.id, image.image_name, image.tag, task.param, task.priority from task, image where task.task_status = 20000 and task.image_id = image.id"
-	rows, err := db.Query(taskSQL)
+func scanTask(c *ignite.Client, db *sql.DB) (err error) {
+	taskSQL := "select id, task_name, image_id, param, priority from task where id in " +
+		"(select MIN(priority) from task limit 1)"
+	taskFromIgnite, err := (*c).QuerySQL(igniteCache, false, ignite.QuerySQLData{Query: taskSQL})
 	if err != nil {
-		fmt.Print(err.Error())
-		fmt.Print(21)
+		log.Warning(err.Error())
 		return
 	}
-	for rows.Next() {
-		i := new(taskInfo)
-		err = rows.Scan(&i.id, &i.imageName, &i.tag, &i.param, &i.priority)
-		if err != nil {
-			fmt.Print(err.Error())
-			fmt.Print(22)
-			return
-		}
-		if checkImage(db, i.id) {
-			taskQueue <- *i
-		}
-	}
+	log.Debug(taskFromIgnite.Rows)
+	//if checkImage(db, i.id) {
+	//	taskQueue <- *i
+	//}
 	return
 }
 
@@ -120,7 +133,7 @@ func scanImage(db *sql.DB) (err error) {
 // 任务扫描定时器
 func taskTimer() {
 	for true {
-		time.Sleep(30 * time.Second)
+		time.Sleep(60 * time.Second)
 		scanOpt <- dbOpt{"task", []string{}}
 	}
 }
@@ -136,6 +149,7 @@ func imageTimer() {
 // 根据定时器信号启动对应的数据库查询操作
 func databaseScanner(databaseInfo *database) {
 	log.Notice("database scanner started.")
+	// 连接建立
 	databaseURL := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?timeout=20s",
 		databaseInfo.Username,
@@ -143,22 +157,45 @@ func databaseScanner(databaseInfo *database) {
 		databaseInfo.Host,
 		databaseInfo.Port,
 		databaseInfo.DatabaseName)
-	db, err := sql.Open("mysql", databaseURL)
+	mysqlDB, err := sql.Open("mysql", databaseURL)
+	if err != nil {
+		log.Warning(err.Error())
+		return
+	}
+	igniteDB, err := ignite.Connect(ignite.ConnInfo{
+		Network: "tcp",
+		Host:    "127.0.0.1",
+		Port:    10800,
+		Major:   1,
+		Minor:   1,
+		Patch:   0})
 	if err != nil {
 		log.Warning(err.Error())
 		return
 	}
 	defer func() {
-		err = db.Close()
+		err = mysqlDB.Close()
+		if err != nil {
+			log.Warning(err.Error())
+		}
+		err = igniteDB.Close()
 		if err != nil {
 			log.Warning(err.Error())
 		}
 	}()
 	// 测试数据库连接
-	if err = db.Ping(); err != nil {
+	if err = mysqlDB.Ping(); err != nil {
 		log.Warning(err.Error())
 		return
 	}
+	// 创建ignite cache
+	err = igniteDB.CacheCreateWithName(igniteCache)
+	if err != nil {
+		log.Warning(err.Error())
+		return
+	}
+	// 初始化ignite task表
+	initIgniteTable(&igniteDB)
 	// 启动定时器
 	go taskTimer()
 	go imageTimer()
@@ -169,13 +206,13 @@ func databaseScanner(databaseInfo *database) {
 		so := <-scanOpt
 		switch so.operation {
 		case "image":
-			err = scanImage(db)
+			err = scanImage(mysqlDB)
 		case "task":
-			err = scanTask(db)
+			err = scanTask(&igniteDB, mysqlDB)
 		case "loaded":
-			err = updateImageLoadedStatus(db, so.param[0], so.param[1])
+			err = updateImageLoadedStatus(mysqlDB, so.param[0], so.param[1])
 		case "task-status":
-			err = updateTaskStatus(db, so.param[0], so.param[1])
+			err = updateTaskStatus(mysqlDB, so.param[0], so.param[1])
 		default:
 			log.Debug(so.operation, so.param)
 			if err != nil {
