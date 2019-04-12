@@ -37,7 +37,9 @@ func taskSender(addr *server, t taskInfo) (err error) {
 	if err != nil {
 		// TODO 错误处理
 		fmt.Print(err.Error())
+		return
 	}
+	scanOpt <- dbOpt{"task-status", []string{strconv.Itoa(20010), strconv.Itoa(t.id)}}
 	return
 }
 

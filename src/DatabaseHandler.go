@@ -76,13 +76,15 @@ func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err erro
 
 func scanTask(db *sql.DB) (err error) {
 	taskSQL := " select task.id, image.image_name, image.tag, task.param, task.priority from task, image " +
-		"where task.id in (select MIN(priority) from task where task_status = 20000 limit 1)"
+		"where task.priority in (select MIN(priority) from task where task_status = 20000) and task_status = 20000 limit 1"
 	rows, err := db.Query(taskSQL)
 	if err != nil {
 		log.Warning(err.Error())
 		return
 	}
-	rows.Next()
+	if !rows.Next() {
+		return
+	}
 	i := new(taskInfo)
 	err = rows.Scan(&i.id, &i.imageName, &i.tag, &i.param, &i.priority)
 	if err != nil {
