@@ -3,8 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/amsokol/ignite-go-client/binary/v1"
-	_ "github.com/amsokol/ignite-go-client/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
 )
@@ -29,25 +27,6 @@ type taskInfo struct {
 }
 
 var scanOpt = make(chan dbOpt, 50)
-var igniteCache = "ndpTaskCache"
-
-func initIgniteTable(c *ignite.Client) {
-	query := "CREATE TABLE task (" +
-		"id int PRIMARY KEY," +
-		"task_name char(128)," +
-		"image_id int," +
-		"start_time char(32)," +
-		"end_time char(32)," +
-		"param text," +
-		"task_status int," +
-		"priority int," +
-		"tid int)"
-	_, err := (*c).QuerySQL(igniteCache, false, ignite.QuerySQLData{Query: query})
-	if err != nil {
-		log.Warning(err.Error())
-		return
-	}
-}
 
 func updateTaskStatus(db *sql.DB, status, taskID string) (err error) {
 	updateTaskStatusSQL := "update task set task_status = ? where id = ?"
@@ -95,18 +74,24 @@ func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err erro
 	return
 }
 
-func scanTask(c *ignite.Client, db *sql.DB) (err error) {
-	taskSQL := "select id, task_name, image_id, param, priority from task where id in " +
-		"(select MIN(priority) from task limit 1)"
-	taskFromIgnite, err := (*c).QuerySQL(igniteCache, false, ignite.QuerySQLData{Query: taskSQL})
+func scanTask(db *sql.DB) (err error) {
+	taskSQL := " select task.id, image.image_name, image.tag, task.param, task.priority from task, image " +
+		"where task.id in (select MIN(priority) from task where task_status = 20000 limit 1)"
+	rows, err := db.Query(taskSQL)
 	if err != nil {
 		log.Warning(err.Error())
 		return
 	}
-	log.Debug(taskFromIgnite.Rows)
-	//if checkImage(db, i.id) {
-	//	taskQueue <- *i
-	//}
+	rows.Next()
+	i := new(taskInfo)
+	err = rows.Scan(&i.id, &i.imageName, &i.tag, &i.param, &i.priority)
+	if err != nil {
+		log.Warning(err.Error())
+		return
+	}
+	if checkImage(db, i.id) {
+		taskQueue <- *i
+	}
 	return
 }
 
@@ -162,23 +147,8 @@ func databaseScanner(databaseInfo *database) {
 		log.Warning(err.Error())
 		return
 	}
-	igniteDB, err := ignite.Connect(ignite.ConnInfo{
-		Network: "tcp",
-		Host:    "127.0.0.1",
-		Port:    10800,
-		Major:   1,
-		Minor:   1,
-		Patch:   0})
-	if err != nil {
-		log.Warning(err.Error())
-		return
-	}
 	defer func() {
 		err = mysqlDB.Close()
-		if err != nil {
-			log.Warning(err.Error())
-		}
-		err = igniteDB.Close()
 		if err != nil {
 			log.Warning(err.Error())
 		}
@@ -188,13 +158,6 @@ func databaseScanner(databaseInfo *database) {
 		log.Warning(err.Error())
 		return
 	}
-	// 创建ignite cache
-	err = igniteDB.CacheCreateWithName(igniteCache)
-	if err != nil {
-		log.Warning(err.Error())
-	}
-	// 初始化ignite task表
-	initIgniteTable(&igniteDB)
 	// 启动定时器
 	go taskTimer()
 	go imageTimer()
@@ -207,7 +170,7 @@ func databaseScanner(databaseInfo *database) {
 		case "image":
 			err = scanImage(mysqlDB)
 		case "task":
-			err = scanTask(&igniteDB, mysqlDB)
+			err = scanTask(mysqlDB)
 		case "loaded":
 			err = updateImageLoadedStatus(mysqlDB, so.param[0], so.param[1])
 		case "task-status":
