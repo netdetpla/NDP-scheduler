@@ -9,15 +9,17 @@ import (
 
 type sendTaskJSON struct {
 	ID        string `json:"id"`
-	ImageName string `json:"image-name"`
+	ImageName string `json:"image_name"`
 	Tag       string `json:"tag"`
 	Param     string `json:"param"`
+	Config map[string]string `json:"config"`
+	TaskTag string `json:"task_tag"`
 }
 
 var taskQueue = make(chan taskInfo, 50)
 
 func taskSender(addr *server, t taskInfo) (err error) {
-	d := sendTaskJSON{strconv.Itoa(t.id), t.imageName, t.tag, t.param}
+	d := sendTaskJSON{strconv.Itoa(t.id), t.imageName, t.tag, t.param, map[string]string{}, "task"}
 	b, err := json.Marshal(d)
 	//TODO 节点选择，目前不实现
 	conn, err := net.Dial("tcp", addr.Ip+":"+addr.Port)
