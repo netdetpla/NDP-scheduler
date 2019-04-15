@@ -24,5 +24,6 @@ func main() {
 	go databaseScanner(&config.Database)
 	go imageLoader(&config.Image)
 	go taskQueueManager(&config.Server)
+	go consumersManager()
 	select {}
 }
