@@ -2,8 +2,6 @@ package main
 
 import (
 	"github.com/Shopify/sarama"
-	"os"
-	"os/signal"
 )
 
 func scanWebResultExtractor(resultLine string) {
@@ -43,20 +41,13 @@ func generateConsumer(topic string) {
 		}
 	}()
 
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt)
-
-ConsumerLoop:
 	for {
-		select {
-		case msg := <-partitionConsumer.Messages():
-			go resultTopics[msg.Topic](string(msg.Value))
-		case <-signals:
-			break ConsumerLoop
-		}
+		msg := <-partitionConsumer.Messages()
+		go resultTopics[msg.Topic](string(msg.Value))
 	}
 }
 func consumersManager() {
+	log.Notice("consumers manager started.")
 	for topic := range resultTopics {
 		go generateConsumer(topic)
 	}
