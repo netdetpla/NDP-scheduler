@@ -7,7 +7,7 @@ import (
 // 日志
 var log = logging.MustGetLogger("example")
 var format = logging.MustStringFormatter(
-	`%{color}%{time:15:04:05} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+	`%{color}%{time:15:04:05} %{shortfile} %{shortfunc} ▶ %{level:.4s} %{color:reset}  %{message}`,
 )
 
 func init() {
