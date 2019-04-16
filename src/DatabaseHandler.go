@@ -119,7 +119,7 @@ func scanImage(db *sql.DB) (err error) {
 
 func insertResult(db *sql.DB, resultLine string, taskID string, table string) (err error) {
 	log.Debug("new result", table, taskID, resultLine)
-	resultSQL := "insert into scanweb (task_id, result_line) values (?, ?)"
+	resultSQL := "insert into " + table + " (task_id, result_line) values (?, ?)"
 	_, err = db.Exec(resultSQL, taskID, resultLine)
 	return
 }
