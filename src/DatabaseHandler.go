@@ -118,15 +118,16 @@ func scanImage(db *sql.DB) (err error) {
 }
 
 func insertResult(db *sql.DB, resultLine string, taskID string, table string) (err error) {
-	resultSQL := "insert into ? (task_id, result_line) values (?, ?)"
-	_, err = db.Exec(resultSQL, resultLine, taskID, table)
+	log.Debug("new result", table, taskID, resultLine)
+	resultSQL := "insert into scanweb (task_id, result_line) values (?, ?)"
+	_, err = db.Exec(resultSQL, taskID, resultLine)
 	return
 }
 
 // 任务扫描定时器
 func taskTimer() {
 	for true {
-		time.Sleep(60 * time.Second)
+		time.Sleep(10 * time.Second)
 		scanOpt <- dbOpt{"task", []string{}}
 	}
 }
