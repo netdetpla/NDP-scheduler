@@ -2,19 +2,31 @@ package main
 
 import (
 	"github.com/Shopify/sarama"
+	"encoding/json"
 )
 
-func scanWebResultExtractor(resultLine string) {
+type kafkaResultJSON struct {
+	TaskID string `json:"task_id"`
+	MD5 string `json:"md5"`
+	ResultLine string `json:"resultline"`
+}
+
+func scanWebResultExtractor(resultLine string, taskID string, table string) {
+	log.Debugf("Consumed message %s", resultLine)
+	scanOpt <- dbOpt{"result", []string{resultLine, taskID, table}}
+}
+
+func scanServiceResultExtractor(resultLine string, taskID string, table string) {
 	log.Debugf("Consumed message %s", resultLine)
 }
 
-func scanServiceResultExtractor(resultLine string) {
-	log.Debugf("Consumed message %s", resultLine)
-}
-
-var resultTopics = map[string]func(s string){
+var resultTopics = map[string]func(s string, id string, table string){
 	"scanWebTaskFile": scanWebResultExtractor,
 	"scanServiceResultExtractor": scanServiceResultExtractor,
+}
+
+var resultTables = map[string]string {
+	"scanWebTaskFile": "scanweb",
 }
 
 func generateConsumer(topic string) {
@@ -43,7 +55,9 @@ func generateConsumer(topic string) {
 
 	for {
 		msg := <-partitionConsumer.Messages()
-		go resultTopics[msg.Topic](string(msg.Value))
+		msgJSON := new(kafkaResultJSON)
+		err = json.Unmarshal(msg.Value, msgJSON)
+		go resultTopics[msg.Topic](msgJSON.ResultLine, msgJSON.TaskID, resultTables[msg.Topic])
 	}
 }
 func consumersManager() {

@@ -1,11 +1,19 @@
 {
-  "image_name": "dnssecure:2.0.1",
-  "parameter_list": [
-    {
-      "parameter": "fasdfasDFASDeUnfdaNJSDkdawoeqrADM=="
-    },
-    {
-      "parameter": "fkdjkNDMSKFdASDjiJDSAksDkdawjjqrM=="
-    }
-  ]
+  "result": {
+    "ports": [
+      {
+        "version": "",
+        "url": "{\'path\': \'/\', \'scheme\': \'http\', \'host\': \'1.1.1.0:80\'}",
+        "protocol": "{\'name\': \'HTTP/1.1\', \'major\': 1, \'minor\': 1}",
+        "port": 80,
+        "headers": "{\'expires\': [\'Tue, 16 Apr 2019 01:46:55 GMT\'], \'x_frame_options\': [\'SAMEORIGIN\'], \'set_cookie\': [\'__cfduid=d1fb8c5528b83a77f90fc6ad8ecc08c791555379200; expires=Wed, 15-Apr-20 01:46:40 GMT; path=/; domain=.1.1.1.0; HttpOnly\'], \'server\': [\'cloudflare\'], \'unknown\': [{\'value\': [\'4c827ca24b6e512e-SJC\'], \'key\': \'cf_ray\'}, {\'value\': [\'Tue, 16 Apr 2019 01:46:40 GMT\'], \'key\': \'date\'}], \'content_type\': [\'text/html; charset=UTF-8\'], \'vary\': [\'Accept-Encoding\'], \'cache_control\': [\'max-age=15\']}",
+        "service_sof": "cloudflare"
+      }
+    ],
+    "ip": "1.1.1.0",
+    "os_version": "Actiontec MI424WR-GEN3I WAP",
+    "hardware": "WAP"
+  },
+  "task_id": "16",
+  "task_name": "test0416-1"
 }

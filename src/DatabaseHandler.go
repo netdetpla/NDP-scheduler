@@ -117,6 +117,12 @@ func scanImage(db *sql.DB) (err error) {
 	return
 }
 
+func insertResult(db *sql.DB, resultLine string, taskID string, table string) (err error) {
+	resultSQL := "insert into ? (task_id, result_line) values (?, ?)"
+	_, err = db.Exec(resultSQL, resultLine, taskID, table)
+	return
+}
+
 // 任务扫描定时器
 func taskTimer() {
 	for true {
@@ -177,6 +183,8 @@ func databaseScanner(databaseInfo *database) {
 			err = updateImageLoadedStatus(mysqlDB, so.param[0], so.param[1])
 		case "task-status":
 			err = updateTaskStatus(mysqlDB, so.param[0], so.param[1])
+		case "result":
+			err = insertResult(mysqlDB, so.param[0], so.param[1], so.param[2])
 		default:
 			log.Debug(so.operation, so.param)
 			if err != nil {
