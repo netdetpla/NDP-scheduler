@@ -75,9 +75,23 @@ func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err erro
 }
 
 func scanTask(db *sql.DB) (err error) {
-	taskSQL := " select task.id, image.image_name, image.tag, task.param, task.priority from task, image " +
-		"where task.priority in (select MIN(priority) from task where task_status = 20000) and task_status = 20000 limit 1"
-	rows, err := db.Query(taskSQL)
+	minPrioritySQL := "select MIN(priority) from task where task_status = 20000"
+	rows, err := db.Query(minPrioritySQL)
+	if err != nil {
+		log.Warning(err.Error())
+		return
+	}
+	if !rows.Next() {
+		return
+	}
+	var minPriority int
+	err = rows.Scan(&minPriority)
+	if err != nil {
+		log.Warning(err.Error())
+		return
+	}
+	taskInfoSQL := "select id, image_id, param, task_status from task where priority = ? limit 1"
+	rows, err = db.Query(taskInfoSQL, minPriority)
 	if err != nil {
 		log.Warning(err.Error())
 		return
@@ -86,7 +100,23 @@ func scanTask(db *sql.DB) (err error) {
 		return
 	}
 	i := new(taskInfo)
-	err = rows.Scan(&i.id, &i.imageName, &i.tag, &i.param, &i.priority)
+	i.priority = minPriority
+	var imageID int
+	err = rows.Scan(&i.id, &imageID, &i.param)
+	if err != nil {
+		log.Warning(err.Error())
+		return
+	}
+	imageInfoSQL := "select image_name, tag from image where id = ?"
+	rows, err = db.Query(imageInfoSQL, imageID)
+	if err != nil {
+		log.Warning(err.Error())
+		return
+	}
+	if !rows.Next() {
+		return
+	}
+	err = rows.Scan(&i.imageName, &i.tag)
 	if err != nil {
 		log.Warning(err.Error())
 		return
