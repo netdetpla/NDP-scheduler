@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
@@ -34,12 +35,34 @@ func updateTaskStatus(db *sql.DB, status, taskID string) (err error) {
 	return
 }
 
+func selectOneRow(db *sql.DB, sql string, args ...interface{}) (rows *sql.Rows, err error) {
+	rows, err = db.Query(sql, args)
+	if err != nil {
+		return
+	}
+	if !rows.Next() {
+		err = errors.New("empty rows")
+	}
+	return
+}
+
+func scanFromRows(rows *sql.Rows, args ...interface{}) (err error) {
+	defer func() {
+		err = rows.Close()
+	}()
+	err = rows.Scan(args)
+	return
+}
+
 func checkImage(db *sql.DB, taskID int) (checkFlag bool) {
 	checkImageSQL := "select is_loaded from image where image.id in (select image_id from task where id = ?)"
 	rows, err := db.Query(checkImageSQL, taskID)
 	if err != nil {
 		return
 	}
+	defer func() {
+		err = rows.Close()
+	}()
 	if !rows.Next() {
 		return false
 	}
@@ -76,16 +99,13 @@ func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err erro
 
 func scanTask(db *sql.DB) (err error) {
 	minPrioritySQL := "select MIN(priority) from task where task_status = 20000"
-	rows, err := db.Query(minPrioritySQL)
+	rows, err := selectOneRow(db, minPrioritySQL)
 	if err != nil {
 		log.Warning(err.Error())
 		return
 	}
-	if !rows.Next() {
-		return
-	}
 	var minPriority sql.NullInt64
-	err = rows.Scan(&minPriority)
+	err = scanFromRows(rows, &minPriority)
 	if err != nil {
 		log.Warning(err.Error())
 		return
@@ -93,34 +113,27 @@ func scanTask(db *sql.DB) (err error) {
 	if !minPriority.Valid {
 		return
 	}
-	rows.Close()
 	taskInfoSQL := "select id, image_id, param from task where priority = ? and task_status = 20000 limit 1"
-	rows, err = db.Query(taskInfoSQL, minPriority)
+	rows, err = selectOneRow(db, taskInfoSQL, minPriority)
 	if err != nil {
 		log.Warning(err.Error())
-		return
-	}
-	if !rows.Next() {
 		return
 	}
 	i := new(taskInfo)
 	i.priority = int(minPriority.Int64)
 	var imageID int
-	err = rows.Scan(&i.id, &imageID, &i.param)
+	err = scanFromRows(rows, &i.id, &imageID, &i.param)
 	if err != nil {
 		log.Warning(err.Error())
 		return
 	}
 	imageInfoSQL := "select image_name, tag from image where id = ?"
-	rows, err = db.Query(imageInfoSQL, imageID)
+	rows, err = selectOneRow(db, imageInfoSQL, imageID)
 	if err != nil {
 		log.Warning(err.Error())
 		return
 	}
-	if !rows.Next() {
-		return
-	}
-	err = rows.Scan(&i.imageName, &i.tag)
+	err = scanFromRows(rows, &i.imageName, &i.tag)
 	if err != nil {
 		log.Warning(err.Error())
 		return
@@ -139,6 +152,9 @@ func scanImage(db *sql.DB) (err error) {
 		fmt.Print(err.Error())
 		return
 	}
+	defer func() {
+		err = rows.Close()
+	}()
 	for rows.Next() {
 		i := new(imageInfo)
 		err = rows.Scan(&i.imageName, &i.tag, &i.fileName)
