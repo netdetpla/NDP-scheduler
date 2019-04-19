@@ -85,7 +85,7 @@ func scanTask(db *sql.DB) (err error) {
 		return
 	}
 	var minPriority sql.NullInt64
-	err = rows.Scan(minPriority)
+	err = rows.Scan(&minPriority)
 	if err != nil {
 		log.Warning(err.Error())
 		return
@@ -93,6 +93,7 @@ func scanTask(db *sql.DB) (err error) {
 	if !minPriority.Valid {
 		return
 	}
+	rows.Close()
 	taskInfoSQL := "select id, image_id, param from task where priority = ? and task_status = 20000 limit 1"
 	rows, err = db.Query(taskInfoSQL, minPriority)
 	if err != nil {
