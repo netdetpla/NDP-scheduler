@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
@@ -35,40 +34,12 @@ func updateTaskStatus(db *sql.DB, status, taskID string) (err error) {
 	return
 }
 
-func selectOneRow(db *sql.DB, sql string, args ...interface{}) (rows *sql.Rows, err error) {
-	rows, err = db.Query(sql, args)
-	if err != nil {
-		return
-	}
-	if !rows.Next() {
-		err = errors.New("empty rows")
-	}
-	return
-}
-
-func scanFromRows(rows *sql.Rows, args ...interface{}) (err error) {
-	defer func() {
-		err = rows.Close()
-	}()
-	err = rows.Scan(args)
-	return
-}
-
 func checkImage(db *sql.DB, taskID int) (checkFlag bool) {
 	checkImageSQL := "select is_loaded from image where image.id in (select image_id from task where id = ?)"
-	rows, err := db.Query(checkImageSQL, taskID)
-	if err != nil {
-		return
-	}
-	defer func() {
-		err = rows.Close()
-	}()
-	if !rows.Next() {
-		return false
-	}
 	var isLoaded int
-	err = rows.Scan(&isLoaded)
+	err := db.QueryRow(checkImageSQL, taskID).Scan(&isLoaded)
 	if err != nil {
+		log.Warning(err.Error())
 		return false
 	}
 	if isLoaded == 1 {
@@ -77,6 +48,7 @@ func checkImage(db *sql.DB, taskID int) (checkFlag bool) {
 		uploadOneImageSQL := "select image_name, tag, file_name from image where id in (select image_id from task where id = ?)"
 		rows, err := db.Query(uploadOneImageSQL, taskID)
 		if err != nil {
+			log.Warning(err.Error())
 			return false
 		}
 		for rows.Next() {
@@ -86,6 +58,11 @@ func checkImage(db *sql.DB, taskID int) (checkFlag bool) {
 				return false
 			}
 			loadOpt <- *i
+		}
+		err = rows.Close()
+		if err != nil {
+			log.Warning(err.Error())
+			return false
 		}
 		return false
 	}
@@ -99,13 +76,8 @@ func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err erro
 
 func scanTask(db *sql.DB) (err error) {
 	minPrioritySQL := "select MIN(priority) from task where task_status = 20000"
-	rows, err := selectOneRow(db, minPrioritySQL)
-	if err != nil {
-		log.Warning(err.Error())
-		return
-	}
 	var minPriority sql.NullInt64
-	err = scanFromRows(rows, &minPriority)
+	err = db.QueryRow(minPrioritySQL).Scan(&minPriority)
 	if err != nil {
 		log.Warning(err.Error())
 		return
@@ -114,26 +86,16 @@ func scanTask(db *sql.DB) (err error) {
 		return
 	}
 	taskInfoSQL := "select id, image_id, param from task where priority = ? and task_status = 20000 limit 1"
-	rows, err = selectOneRow(db, taskInfoSQL, minPriority)
-	if err != nil {
-		log.Warning(err.Error())
-		return
-	}
 	i := new(taskInfo)
 	i.priority = int(minPriority.Int64)
 	var imageID int
-	err = scanFromRows(rows, &i.id, &imageID, &i.param)
+	err = db.QueryRow(taskInfoSQL, minPriority).Scan(&i.id, &imageID, &i.param)
 	if err != nil {
 		log.Warning(err.Error())
 		return
 	}
 	imageInfoSQL := "select image_name, tag from image where id = ?"
-	rows, err = selectOneRow(db, imageInfoSQL, imageID)
-	if err != nil {
-		log.Warning(err.Error())
-		return
-	}
-	err = scanFromRows(rows, &i.imageName, &i.tag)
+	err = db.QueryRow(imageInfoSQL, imageID).Scan(&i.imageName, &i.tag)
 	if err != nil {
 		log.Warning(err.Error())
 		return
