@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Shopify/sarama"
 	"encoding/json"
+	"github.com/Shopify/sarama"
 )
 
 type kafkaResultJSON struct {
@@ -11,22 +11,18 @@ type kafkaResultJSON struct {
 	ResultLine string `json:"resultline"`
 }
 
-func scanWebResultExtractor(resultLine string, taskID string, table string) {
+func extractResult(resultLine string, taskID string, table string)  {
 	log.Debugf("Consumed message %s", resultLine)
 	scanOpt <- dbOpt{"result", []string{resultLine, taskID, table}}
 }
 
-func scanServiceResultExtractor(resultLine string, taskID string, table string) {
-	log.Debugf("Consumed message %s", resultLine)
-}
-
-var resultTopics = map[string]func(s string, id string, table string){
-	"scanWebTaskFile": scanWebResultExtractor,
-	"scanServiceResultExtractor": scanServiceResultExtractor,
-}
-
 var resultTables = map[string]string {
 	"scanWebTaskFile": "scanweb",
+	"scanServiceTaskFile": "scanservice",
+	"scanDnsTaskFile": "scandns",
+	"bugTaskFile": "info_shell",
+	"scanVulTaskFile": "scanvul",
+	"ecdsystemTaskFile": "ecdsystemTaskFile",
 }
 
 func generateConsumer(topic string) {
@@ -57,12 +53,12 @@ func generateConsumer(topic string) {
 		msg := <-partitionConsumer.Messages()
 		msgJSON := new(kafkaResultJSON)
 		err = json.Unmarshal(msg.Value, msgJSON)
-		go resultTopics[msg.Topic](msgJSON.ResultLine, msgJSON.TaskID, resultTables[msg.Topic])
+		go extractResult(msgJSON.ResultLine, msgJSON.TaskID, resultTables[msg.Topic])
 	}
 }
 func consumersManager() {
 	log.Notice("consumers manager started.")
-	for topic := range resultTopics {
+	for topic := range resultTables {
 		go generateConsumer(topic)
 	}
 }
