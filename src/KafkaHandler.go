@@ -22,7 +22,7 @@ var resultTables = map[string]string {
 	"scanDnsTaskFile": "scandns",
 	"bugTaskFile": "info_shell",
 	"scanVulTaskFile": "scanvul",
-	"ecdsystemTaskFile": "ecdsystemTaskFile",
+	"ecdsystemTaskFile": "ecdsystem",
 }
 
 func generateConsumer(topic string) {
