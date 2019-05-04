@@ -74,6 +74,16 @@ func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err erro
 	return
 }
 
+func scanTaskStatus(db *sql.DB) (err error) {
+	runningSQL := "select isnull((select top(1) 1 from task where task_status = 20020), 0)"
+	var result int
+	err = db.QueryRow(runningSQL).Scan(&result)
+	if err != nil || result == 1{
+		return
+	}
+	scanOpt <- dbOpt{"task", []string{}}
+	return
+}
 func scanTask(db *sql.DB) (err error) {
 	minPrioritySQL := "select MIN(priority) from task where task_status = 20000"
 	var minPriority sql.NullInt64
@@ -140,7 +150,7 @@ func insertResult(db *sql.DB, resultLine string, taskID string, table string) (e
 func taskTimer() {
 	for true {
 		time.Sleep(10 * time.Second)
-		scanOpt <- dbOpt{"task", []string{}}
+		scanOpt <- dbOpt{"status", []string{}}
 	}
 }
 
@@ -183,13 +193,15 @@ func databaseScanner(databaseInfo *database) {
 	go taskTimer()
 	go imageTimer()
 	scanOpt <- dbOpt{"image", []string{}}
-	scanOpt <- dbOpt{"task", []string{}}
+	scanOpt <- dbOpt{"status", []string{}}
 	for {
 		// 读取channel里消息并调用对应方法，没有则阻塞等待
 		so := <-scanOpt
 		switch so.operation {
 		case "image":
 			err = scanImage(mysqlDB)
+		case "status":
+			err = scanTaskStatus(mysqlDB)
 		case "task":
 			err = scanTask(mysqlDB)
 		case "loaded":
