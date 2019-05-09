@@ -23,6 +23,8 @@ var resultTables = map[string]string {
 	"bugTaskFile": "info_shell",
 	"scanVulTaskFile": "scanvul",
 	"ecdsystemTaskFile": "ecdsystem",
+	"domainTaskFile": "dnssecure",
+	"nsTaskFile": "dnsns",
 }
 
 func generateConsumer(topic string) {
