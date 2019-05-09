@@ -75,7 +75,7 @@ func updateImageLoadedStatus(db *sql.DB, imageName string, tag string) (err erro
 }
 
 func scanTaskStatus(db *sql.DB) (err error) {
-	runningSQL := "select count(id) from task where task_status = 20020 limit 1"
+	runningSQL := "select count(id) from task where task_status = 20020 or task_status = 20010 limit 1"
 	var result int
 	err = db.QueryRow(runningSQL).Scan(&result)
 	if err != nil || result == 1{
