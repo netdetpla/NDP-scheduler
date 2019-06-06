@@ -25,5 +25,6 @@ func main() {
 	go imageLoader(&config.Image)
 	go taskQueueManager(&config.Server)
 	go consumersManager()
+	go udpServer(&config.Resource)
 	select {}
 }

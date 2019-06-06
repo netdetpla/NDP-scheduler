@@ -28,10 +28,15 @@ type image struct {
 	RepoPort string `json:"repo_port"`
 }
 
+type resource struct {
+	Port string `json:"port"`
+}
+
 type config struct {
 	Server   server   `json:"server"`
 	Image    image    `json:"image"`
 	Database database `json:"database"`
+	Resource resource `json:"resource"`
 }
 
 // 获取当前绝对路径
