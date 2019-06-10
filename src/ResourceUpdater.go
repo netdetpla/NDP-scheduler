@@ -4,7 +4,7 @@ import (
 	"net"
 )
 
-func udpServer(r resource)  {
+func udpServer(r *resource)  {
 	addr, err := net.ResolveUDPAddr("udp", ":" + r.Port)
 	if err != nil {
 		log.Error(err.Error())
@@ -15,7 +15,7 @@ func udpServer(r resource)  {
 		log.Error(err.Error())
 		return
 	}
-	log.Info("UDP server for resource started.")
+	log.Notice("UDP server for resource started.")
 	data := make([]byte, 1024)
 	for {
 		n, remoteAddr, err := listener.ReadFromUDP(data)
