@@ -141,6 +141,10 @@ func scanImage(db *sql.DB) (err error) {
 
 func insertResult(db *sql.DB, resultLine string, taskID string, table string) (err error) {
 	log.Debug("new result", table, taskID, resultLine)
+	if table == "scanservice" {
+		err = ParseScanService(db, resultLine)
+		return
+	}
 	resultSQL := "insert into " + table + " (task_id, result_line) values (?, ?)"
 	_, err = db.Exec(resultSQL, taskID, resultLine)
 	return

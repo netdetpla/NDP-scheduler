@@ -1,0 +1,35 @@
+{
+  "result": [
+    {
+      "ports": [
+        {
+          "version": "unknown",
+          "port": 8080,
+          "protocol": "tcp",
+          "service": "http-proxy",
+          "product": "X2_Platform"
+        },
+        {
+          "version": "unknown",
+          "port": 80,
+          "protocol": "tcp",
+          "service": "http",
+          "product": "X2_Platform"
+        },
+        {
+          "version": "unknown",
+          "port": 443,
+          "protocol": "tcp",
+          "service": "https",
+          "product": "NWSs"
+        }
+      ],
+      "os_version": "Actiontec MI424WR-GEN3I WAP",
+      "ip": "117.177.223.212",
+      "hardware": "WAP"
+    }
+  ],
+  "subtask_id": "",
+  "task_id": "51893",
+  "task_name": "task-courier-3"
+}
