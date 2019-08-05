@@ -9,7 +9,7 @@ import (
 // scanservice
 type scanServicePort struct {
 	Version  string `json:"version"`
-	Port     string `json:"port"`
+	Port     int64 `json:"port"`
 	Protocol string `json:"protocol"`
 	Service  string `json:"service"`
 	Product  string `json:"product"`
@@ -36,18 +36,18 @@ func ParseScanService(db *sql.DB, resultLine string) (err error) {
 	}
 	for _, r := range result.Result {
 		// 直接更新结果
-		replaceIPSQL := "replace into `ip`(`ip`, `os_version`, `harward`) values (?, ?, ?)"
+		replaceIPSQL := "replace into `ip`(`ip`, `os_version`, `hardware`) values (?, ?, ?)"
 		_, err = db.Exec(replaceIPSQL, r.IP, r.OSVersion, r.Hardware)
 		if err != nil {
-			fmt.Print(err.Error())
+			log.Error(err.Error())
 			return
 		}
 		// 获取ip对应id
 		ipIDSQL := "select id from `ip` where `ip` = ?"
 		var id int
-		err = db.QueryRow(ipIDSQL).Scan(&id)
+		err = db.QueryRow(ipIDSQL, r.IP).Scan(&id)
 		if err != nil {
-			fmt.Print(err.Error())
+			log.Error(err.Error())
 			return
 		}
 		for _, p := range r.Ports {
@@ -56,7 +56,7 @@ func ParseScanService(db *sql.DB, resultLine string) (err error) {
 				"values (?, ?, ?, ?, ?, ?)"
 			_, err = db.Exec(replacePortSQL, id, p.Port, p.Protocol, p.Service, p.Product, p.Version)
 			if err != nil {
-				fmt.Print(err.Error())
+				log.Error(err.Error())
 				return
 			}
 		}
