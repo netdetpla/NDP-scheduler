@@ -29,7 +29,7 @@ var resultTables = map[string]string {
 
 func generateConsumer(topic string) {
 	consumer, err := sarama.NewConsumer([]string{
-		"192.168.226.11:9092", "192.168.226.12:9092", "192.168.226.13:9092"}, nil)
+		"192.168.120.10:9092", "192.168.120.11:9092", "192.168.120.12:9092"}, nil)
 	if err != nil {
 		log.Warning(err.Error())
 	}
