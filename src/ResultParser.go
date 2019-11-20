@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"net"
 )
 
 // scanservice
@@ -26,7 +28,11 @@ type scanService struct {
 	TaskID    string              `json:"task_id"`
 	TaskName  string              `json:"task_name"`
 }
-
+func InetAtoN(ip string) int64 {
+	ret := big.NewInt(0)
+	ret.SetBytes(net.ParseIP(ip).To4())
+	return ret.Int64()
+}
 func ParseScanService(db *sql.DB, resultLine string) (err error) {
 	result := new(scanService)
 	err = json.Unmarshal([]byte(resultLine), result)
@@ -35,17 +41,10 @@ func ParseScanService(db *sql.DB, resultLine string) (err error) {
 		return
 	}
 	for _, r := range result.Result {
+		intIP := InetAtoN(r.IP)
 		// 直接更新结果
-		replaceIPSQL := "replace into `ip`(`ip`, `os_version`, `hardware`) values (?, ?, ?)"
-		_, err = db.Exec(replaceIPSQL, r.IP, r.OSVersion, r.Hardware)
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-		// 获取ip对应id
-		ipIDSQL := "select id from `ip` where `ip` = ?"
-		var id int
-		err = db.QueryRow(ipIDSQL, r.IP).Scan(&id)
+		replaceIPSQL := "replace into `ip`(`id`, `ip`, `os_version`, `hardware`) values (?, ?, ?, ?)"
+		_, err = db.Exec(replaceIPSQL, intIP, r.IP, r.OSVersion, r.Hardware)
 		if err != nil {
 			log.Error(err.Error())
 			return
@@ -54,7 +53,7 @@ func ParseScanService(db *sql.DB, resultLine string) (err error) {
 			// 更新port表
 			replacePortSQL := "replace into `port`(`ip_id`, `port`, `protocol`, `service`, `product`, `version`) " +
 				"values (?, ?, ?, ?, ?, ?)"
-			_, err = db.Exec(replacePortSQL, id, p.Port, p.Protocol, p.Service, p.Product, p.Version)
+			_, err = db.Exec(replacePortSQL, intIP, p.Port, p.Protocol, p.Service, p.Product, p.Version)
 			if err != nil {
 				log.Error(err.Error())
 				return
