@@ -11,7 +11,7 @@ import (
 // scanservice
 type scanServicePort struct {
 	Version  string `json:"version"`
-	Port     int64 `json:"port"`
+	Port     int64  `json:"port"`
 	Protocol string `json:"protocol"`
 	Service  string `json:"service"`
 	Product  string `json:"product"`
@@ -28,6 +28,7 @@ type scanService struct {
 	TaskID    string              `json:"task_id"`
 	TaskName  string              `json:"task_name"`
 }
+
 func InetAtoN(ip string) int64 {
 	ret := big.NewInt(0)
 	ret.SetBytes(net.ParseIP(ip).To4())
@@ -42,9 +43,20 @@ func ParseScanService(db *sql.DB, resultLine string) (err error) {
 	}
 	for _, r := range result.Result {
 		intIP := InetAtoN(r.IP)
+		// 查找ip地理坐标
+		selectGeoSQL := "select geoname_id from GeoLite2-City-Blocks-IPv4 where long_ip_start <= ? and long_ip_end >= ?"
+		var geoID sql.NullInt64
+		err := db.QueryRow(selectGeoSQL).Scan(&geoID)
+		if err != nil {
+			log.Warning(err.Error())
+			return
+		}
+		if !geoID.Valid {
+			return
+		}
 		// 直接更新结果
-		replaceIPSQL := "replace into `ip`(`id`, `ip`, `os_version`, `hardware`) values (?, ?, ?, ?)"
-		_, err = db.Exec(replaceIPSQL, intIP, r.IP, r.OSVersion, r.Hardware)
+		replaceIPSQL := "replace into `ip`(`id`, `ip`, `os_version`, `hardware`, `lnglat_id`) values (?, ?, ?, ?, ?)"
+		_, err = db.Exec(replaceIPSQL, intIP, r.IP, r.OSVersion, r.Hardware, geoID)
 		if err != nil {
 			log.Error(err.Error())
 			return
