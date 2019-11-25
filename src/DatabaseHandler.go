@@ -169,7 +169,7 @@ func scanExecutor(db *sql.DB) (err error){
 	checkSQL := "select exec_ip from executor where status = 0 limit 1"
 	var result sql.NullString
 	err = db.QueryRow(checkSQL).Scan(&result)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows{
 		log.Warning(err.Error())
 		return
 	}
