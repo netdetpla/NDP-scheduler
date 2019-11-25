@@ -19,11 +19,11 @@ type imageInfo struct {
 }
 
 type taskInfo struct {
-	id        int
-	imageName string
-	tag       string
-	param     string
-	priority  int
+	id         int
+	imageName  string
+	tag        string
+	param      string
+	priority   int
 	executorIP string
 }
 
@@ -79,7 +79,7 @@ func scanTaskStatus(db *sql.DB) (err error) {
 	runningSQL := "select count(id) from task where task_status = 20020 or task_status = 20010 limit 1"
 	var result int
 	err = db.QueryRow(runningSQL).Scan(&result)
-	if err != nil || result == 1{
+	if err != nil || result == 1 {
 		return
 	}
 	scanOpt <- dbOpt{"task", []string{}}
@@ -165,12 +165,14 @@ func insertResult(db *sql.DB, resultLine string, taskID string, table string) (e
 }
 
 // 扫描执行节点状态
-func scanExecutor(db *sql.DB) (err error){
+func scanExecutor(db *sql.DB) (err error) {
 	checkSQL := "select exec_ip from executor where status = 0 limit 1"
 	var result sql.NullString
 	err = db.QueryRow(checkSQL).Scan(&result)
-	if err != nil && err != sql.ErrNoRows{
-		log.Warning(err.Error())
+	if err != nil {
+		if err != sql.ErrNoRows {
+			log.Warning(err.Error())
+		}
 		return
 	}
 	if !result.Valid {
@@ -210,8 +212,6 @@ func executorTimer() {
 		scanOpt <- dbOpt{"executor", []string{}}
 	}
 }
-
-
 
 // 根据定时器信号启动对应的数据库查询操作
 func databaseScanner(databaseInfo *database) {
