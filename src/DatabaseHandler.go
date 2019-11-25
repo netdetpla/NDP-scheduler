@@ -28,6 +28,7 @@ type taskInfo struct {
 }
 
 var scanOpt = make(chan dbOpt, 50)
+var mysqlDB *sql.DB
 
 func updateTaskStatus(db *sql.DB, status, taskID string) (err error) {
 	updateTaskStatusSQL := "update task set task_status = ? where id = ?"
@@ -85,16 +86,22 @@ func scanTaskStatus(db *sql.DB) (err error) {
 	scanOpt <- dbOpt{"task", []string{}}
 	return
 }
+
+func unlockExecutor(db *sql.DB, executorIP string) (err error) {
+	unlockSQL := "update executor set status = 0 where exec_ip = ?"
+	_, err = db.Exec(unlockSQL, executorIP)
+	if err != nil {
+		log.Warning(err.Error())
+	}
+	return
+}
 func scanTask(db *sql.DB, executorIP string) (err error) {
 	unlockFlag := true
 	// 退出前如果没有任务或者出错则解锁
 	defer func() {
 		if unlockFlag {
-			unlockSQL := "update executor set status = 0 where exec_ip = ?"
-			_, err = db.Exec(unlockSQL, executorIP)
-			if err != nil {
-				log.Warning(err.Error())
-			}
+			_ = unlockExecutor(db, executorIP)
+			return
 		}
 	}()
 	minPrioritySQL := "select MIN(priority) from task where task_status = 20000"
@@ -224,7 +231,8 @@ func databaseScanner(databaseInfo *database) {
 		databaseInfo.Host,
 		databaseInfo.Port,
 		databaseInfo.DatabaseName)
-	mysqlDB, err := sql.Open("mysql", databaseURL)
+	var err error
+	mysqlDB, err = sql.Open("mysql", databaseURL)
 	if err != nil {
 		log.Warning(err.Error())
 		return

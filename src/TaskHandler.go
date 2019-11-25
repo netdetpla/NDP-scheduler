@@ -19,10 +19,18 @@ type sendTaskJSON struct {
 var taskQueue = make(chan taskInfo, 50)
 
 func taskSender(addr *server, t taskInfo) (err error) {
+	unlockFlag := true
+	// 退出前如果任务下发失败则解锁
+	defer func() {
+		if unlockFlag {
+			_ = unlockExecutor(mysqlDB, t.executorIP)
+			return
+		}
+	}()
 	d := sendTaskJSON{strconv.Itoa(t.id), t.imageName, t.tag, t.param, map[string]string{}, "task"}
 	b, err := json.Marshal(d)
 	//conn, err := net.Dial("tcp", addr.Ip+":"+addr.Port)
-	conn, err := net.Dial("tcp", t.executorIP + ":" +addr.Port)
+	conn, err := net.Dial("tcp", t.executorIP+":"+addr.Port)
 	if err != nil {
 		fmt.Print(err.Error())
 		return
@@ -40,6 +48,7 @@ func taskSender(addr *server, t taskInfo) (err error) {
 		fmt.Print(err.Error())
 		return
 	}
+	unlockFlag = false
 	scanOpt <- dbOpt{"task-status", []string{strconv.Itoa(20010), strconv.Itoa(t.id)}}
 	return
 }
