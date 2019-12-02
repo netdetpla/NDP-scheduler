@@ -4,7 +4,7 @@
     "port": "10201"
   },
   "database": {
-    "host": "192.168.120.10",
+    "host": "192.168.1.120",
     "port": "3306",
     "database_name": "ndp",
     "username": "root",

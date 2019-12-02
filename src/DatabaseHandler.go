@@ -166,8 +166,15 @@ func insertResult(db *sql.DB, resultLine string, taskID string, table string) (e
 		err = ParseScanService(db, resultLine)
 		return
 	}
-	resultSQL := "insert into " + table + " (task_id, result_line) values (?, ?)"
-	_, err = db.Exec(resultSQL, taskID, resultLine)
+	switch table {
+	case "scanservice":
+		err = ParseScanService(db, resultLine)
+	case "ip-test":
+		err = ParseIPTest(db, resultLine)
+	default:
+		resultSQL := "insert into " + table + " (task_id, result_line) values (?, ?)"
+		_, err = db.Exec(resultSQL, taskID, resultLine)
+	}
 	return
 }
 

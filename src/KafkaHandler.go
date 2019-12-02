@@ -6,30 +6,37 @@ import (
 )
 
 type kafkaResultJSON struct {
-	TaskID string `json:"task_id"`
-	MD5 string `json:"md5"`
+	TaskID     string `json:"task_id"`
+	MD5        string `json:"md5"`
 	ResultLine string `json:"resultline"`
 }
 
-func extractResult(resultLine string, taskID string, table string)  {
+func extractResult(resultLine string, taskID string, table string) {
 	log.Debugf("Consumed message %s", resultLine)
 	scanOpt <- dbOpt{"result", []string{resultLine, taskID, table}}
 }
 
-var resultTables = map[string]string {
-	"scanWebTaskFile": "scanweb",
+var resultTables = map[string]string{
+	"scanWebTaskFile":     "scanweb",
 	"scanServiceTaskFile": "scanservice",
-	"scanDnsTaskFile": "scandns",
-	"bugTaskFile": "info_shell",
-	"scanVulTaskFile": "scanvul",
-	"ecdsystemTaskFile": "ecdsystem",
-	"domainTaskFile": "dnssecure",
-	"nsTaskFile": "dnsns",
+	"scanDnsTaskFile":     "scandns",
+	"bugTaskFile":         "info_shell",
+	"scanVulTaskFile":     "scanvul",
+	"ecdsystemTaskFile":   "ecdsystem",
+	"domainTaskFile":      "dnssecure",
+	"nsTaskFile":          "dnsns",
+	"ipTestTaskFile":      "ip-test",
 }
 
 func generateConsumer(topic string) {
 	consumer, err := sarama.NewConsumer([]string{
-		"192.168.120.10:9092", "192.168.120.11:9092", "192.168.120.12:9092"}, nil)
+		"192.168.1.120:9092",
+		"192.168.1.121:9092",
+		"192.168.1.122:9092",
+		"192.168.1.123:9092",
+		"192.168.1.124:9092",
+		"192.168.1.125:9092",
+	}, nil)
 	if err != nil {
 		log.Warning(err.Error())
 	}

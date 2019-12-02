@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"strings"
 )
 
 // scanservice
@@ -73,4 +74,29 @@ func ParseScanService(db *sql.DB, resultLine string) (err error) {
 		}
 	}
 	return
+}
+
+func ParseIPTest(db *sql.DB, resultLine string) (err error) {
+	ipSet := strings.Split(resultLine, ",")
+	for _, ip := range ipSet {
+		intIP := InetAtoN(ip)
+		// 查找ip地理坐标
+		selectGeoSQL := "select geoname_id from GeoLite2-City-Blocks-IPv4 where long_ip_start <= ? and long_ip_end >= ?"
+		var geoID sql.NullInt64
+		err = db.QueryRow(selectGeoSQL).Scan(&geoID)
+		if err != nil {
+			log.Warning(err.Error())
+			return
+		}
+		if !geoID.Valid {
+			return
+		}
+		// 直接更新结果
+		replaceIPSQL := "replace into `ip`(`id`, `ip`, `lnglat_id`) values (?, ?, ?)"
+		_, err = db.Exec(replaceIPSQL, intIP, ip, geoID)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+	}
 }
