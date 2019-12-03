@@ -222,7 +222,7 @@ func imageTimer() {
 // 执行节点扫描定时器
 func executorTimer() {
 	for true {
-		time.Sleep(20 * time.Second)
+		time.Sleep(5 * time.Second)
 		scanOpt <- dbOpt{"executor", []string{}}
 	}
 }

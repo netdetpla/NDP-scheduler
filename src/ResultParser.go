@@ -35,6 +35,35 @@ func InetAtoN(ip string) int64 {
 	ret.SetBytes(net.ParseIP(ip).To4())
 	return ret.Int64()
 }
+
+func findIP(db *sql.DB, ip int64) (flag bool, err error) {
+	findSQL := "select `id` from `ip` where id=?"
+	var temp sql.NullInt64
+	err = db.QueryRow(findSQL, ip).Scan(&temp)
+	if err != nil {
+		return
+	}
+	if temp.Valid {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
+func findGeoID(db *sql.DB, ip int64) (id int64, err error) {
+	selectGeoSQL := "select `geoname_id` from `GeoLite2-City-Blocks-IPv4` where `long_ip_start` <= ? and `long_ip_end` >= ?"
+	var geoID sql.NullInt64
+	err = db.QueryRow(selectGeoSQL, ip, ip).Scan(&geoID)
+	if err != nil {
+		log.Warning(err.Error())
+		return
+	}
+	if !geoID.Valid {
+		return -1, nil
+	}
+	return geoID.Int64, nil
+}
+
 func ParseScanService(db *sql.DB, resultLine string) (err error) {
 	result := new(scanService)
 	err = json.Unmarshal([]byte(resultLine), result)
@@ -80,20 +109,26 @@ func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 	ipSet := strings.Split(resultLine, ",")
 	for _, ip := range ipSet {
 		intIP := InetAtoN(ip)
-		// 查找ip地理坐标
-		selectGeoSQL := "select `geoname_id` from `GeoLite2-City-Blocks-IPv4` where `long_ip_start` <= ? and `long_ip_end` >= ?"
-		var geoID sql.NullInt64
-		err = db.QueryRow(selectGeoSQL, intIP, intIP).Scan(&geoID)
+		// insert or update
+		flag, err := findIP(db, intIP)
 		if err != nil {
-			log.Warning(err.Error())
+			log.Error(err.Error())
 			return
 		}
-		if !geoID.Valid {
-			return
+		var insertOrUpdate string
+		if flag {
+			insertOrUpdate = "update `ip` set `ip_test_flag`=1 where id=?"
+			_, err = db.Exec(insertOrUpdate, intIP)
+		} else {
+			insertOrUpdate = "insert into `ip`(`id`, `ip`, `lnglat_id`, `ip_test_flag`) values (?, ?, ?, 1)"
+			// 查找ip地理坐标
+			geoID, err := findGeoID(db, intIP)
+			if err != nil {
+				log.Error(err.Error())
+				return
+			}
+			_, err = db.Exec(insertOrUpdate, intIP, ip, geoID)
 		}
-		// 直接更新结果
-		replaceIPSQL := "replace into `ip`(`id`, `ip`, `lnglat_id`) values (?, ?, ?)"
-		_, err = db.Exec(replaceIPSQL, intIP, ip, geoID)
 		if err != nil {
 			log.Error(err.Error())
 			return
