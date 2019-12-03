@@ -83,7 +83,7 @@ func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 		// 查找ip地理坐标
 		selectGeoSQL := "select geoname_id from GeoLite2-City-Blocks-IPv4 where long_ip_start <= ? and long_ip_end >= ?"
 		var geoID sql.NullInt64
-		err = db.QueryRow(selectGeoSQL).Scan(&geoID)
+		err = db.QueryRow(selectGeoSQL, intIP, intIP).Scan(&geoID)
 		if err != nil {
 			log.Warning(err.Error())
 			return
