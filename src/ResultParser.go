@@ -40,8 +40,13 @@ func findIP(db *sql.DB, ip int64) (flag bool, err error) {
 	findSQL := "select `id` from `ip` where id=?"
 	var temp sql.NullInt64
 	err = db.QueryRow(findSQL, ip).Scan(&temp)
+
 	if err != nil {
-		return
+		if err == sql.ErrNoRows {
+			return false, nil
+		} else {
+			return
+		}
 	}
 	if temp.Valid {
 		return true, nil
