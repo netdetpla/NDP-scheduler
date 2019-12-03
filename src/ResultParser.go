@@ -113,7 +113,7 @@ func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 		flag, err := findIP(db, intIP)
 		if err != nil {
 			log.Error(err.Error())
-			return
+			return err
 		}
 		var insertOrUpdate string
 		if flag {
@@ -125,13 +125,13 @@ func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 			geoID, err := findGeoID(db, intIP)
 			if err != nil {
 				log.Error(err.Error())
-				return
+				return err
 			}
 			_, err = db.Exec(insertOrUpdate, intIP, ip, geoID)
 		}
 		if err != nil {
 			log.Error(err.Error())
-			return
+			return err
 		}
 	}
 	return
