@@ -96,7 +96,8 @@ func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 		_, err = db.Exec(replaceIPSQL, intIP, ip, geoID)
 		if err != nil {
 			log.Error(err.Error())
+			return
 		}
-		return
 	}
+	return
 }
