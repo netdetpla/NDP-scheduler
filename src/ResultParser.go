@@ -117,7 +117,7 @@ func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 	ipSet := strings.Split(resultLine, ",")
 	var updateParam []string
 	var insertParam []string
-	insertParamFormat := "(%d, %s, %d, 1)"
+	insertParamFormat := "(%d, '%s', %d, 1)"
 	for _, ip := range ipSet {
 		intIP := InetAtoN(ip)
 		// insert or update
