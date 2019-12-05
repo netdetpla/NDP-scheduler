@@ -48,6 +48,7 @@ func taskSender(addr *server, t taskInfo) (err error) {
 		fmt.Print(err.Error())
 		return
 	}
+	log.Infof("send task to %s", t.executorIP)
 	unlockFlag = false
 	scanOpt <- dbOpt{"task-status", []string{strconv.Itoa(20010), strconv.Itoa(t.id)}}
 	return

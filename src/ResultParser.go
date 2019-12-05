@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -56,7 +57,9 @@ func findIP(db *sql.DB, ip int64) (flag bool, err error) {
 }
 
 func findGeoID(db *sql.DB, ip int64) (id int64, err error) {
-	selectGeoSQL := "select `geoname_id` from `GeoLite2-City-Blocks-IPv4` where `long_ip_start` <= ? and `long_ip_end` >= ?"
+	selectGeoSQL := "select `geoname_id` from `GeoLite2-City-Blocks-IPv4` " +
+		"use index (`geolite2-city-blocks-ipv4_long_ip_start_index`,`geolite2-city-blocks-ipv4_long_ip_end_index`) " +
+		"where `long_ip_start` <= ? and `long_ip_end` >= ?"
 	var geoID sql.NullInt64
 	err = db.QueryRow(selectGeoSQL, ip, ip).Scan(&geoID)
 	if err != nil {
@@ -112,6 +115,9 @@ func ParseScanService(db *sql.DB, resultLine string) (err error) {
 
 func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 	ipSet := strings.Split(resultLine, ",")
+	var updateParam []string
+	var insertParam []string
+	insertParamFormat := "(%d, %s, %d, 1)"
 	for _, ip := range ipSet {
 		intIP := InetAtoN(ip)
 		// insert or update
@@ -120,24 +126,32 @@ func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 			log.Error(err.Error())
 			return err
 		}
-		var insertOrUpdate string
 		if flag {
-			insertOrUpdate = "update `ip` set `ip_test_flag`=1 where id=?"
-			_, err = db.Exec(insertOrUpdate, intIP)
+			updateParam = append(updateParam, strconv.FormatInt(intIP, 10))
 		} else {
-			insertOrUpdate = "insert into `ip`(`id`, `ip`, `lnglat_id`, `ip_test_flag`) values (?, ?, ?, 1)"
 			// 查找ip地理坐标
 			geoID, err := findGeoID(db, intIP)
 			if err != nil {
 				log.Error(err.Error())
 				return err
 			}
-			_, err = db.Exec(insertOrUpdate, intIP, ip, geoID)
+			insertParam = append(insertParam, fmt.Sprintf(insertParamFormat, intIP, ip, geoID))
 		}
-		if err != nil {
-			log.Error(err.Error())
-			return err
-		}
+	}
+	if len(updateParam) > 0 {
+		updateSQL := "update `ip` set `ip_test_flag`=1 where id in (%s)"
+		_, err = db.Exec(fmt.Sprintf(updateSQL, strings.Join(updateParam, ",")))
+	}
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+	if len(insertParam) > 0 {
+		insertSQL := "insert into `ip`(`id`, `ip`, `lnglat_id`, `ip_test_flag`) values "
+		_, err = db.Exec(insertSQL + strings.Join(insertParam, ","))
+	}
+	if err != nil {
+		log.Error(err.Error())
 	}
 	return
 }
