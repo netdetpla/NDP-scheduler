@@ -26,16 +26,14 @@ var resultTables = map[string]string{
 	"domainTaskFile":      "dnssecure",
 	"nsTaskFile":          "dnsns",
 	"ipTestTaskFile":      "ip-test",
+	"portScanTaskFile":    "port-scan",
 }
 
 func generateConsumer(topic string) {
 	consumer, err := sarama.NewConsumer([]string{
-		"192.168.1.120:9092",
-		"192.168.1.121:9092",
-		"192.168.1.122:9092",
-		"192.168.1.123:9092",
-		"192.168.1.124:9092",
-		"192.168.1.125:9092",
+		"192.168.75.120:9092",
+		"192.168.75.121:9092",
+		"192.168.75.122:9092",
 	}, nil)
 	if err != nil {
 		log.Warning(err.Error())
