@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -181,7 +182,7 @@ func parsePortScan(db *sql.DB, resultLine string) (err error) {
 	insertParamFormat := "(%d, %s, '%s', '%s', '%s')"
 	for _, h := range *result {
 		intIP := InetAtoN(h.Address)
-		updateParam = append(updateParam, h.Address)
+		updateParam = append(updateParam, strconv.FormatInt(intIP, 10))
 		for _, p := range h.Ports {
 			insertParam = append(
 				insertParam,
