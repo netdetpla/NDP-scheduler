@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"strconv"
 	"strings"
 )
 
@@ -29,6 +28,20 @@ type scanService struct {
 	SubtaskID string              `json:"subtask_id"`
 	TaskID    string              `json:"task_id"`
 	TaskName  string              `json:"task_name"`
+}
+
+// port-scan
+type portScanPort struct {
+	Protocol string `json:"protocol"`
+	PortID   string `json:"portID"`
+	State    string `json:"state"`
+	Service  string `json:"service"`
+	Product  string `json:"product"`
+}
+
+type portScanHost struct {
+	Address string         `json:"address"`
+	Ports   []portScanPort `json:"ports"`
 }
 
 func InetAtoN(ip string) int64 {
@@ -127,7 +140,7 @@ func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 			return err
 		}
 		if flag {
-			updateParam = append(updateParam, strconv.FormatInt(intIP, 10))
+			updateParam = append(updateParam, ip)
 		} else {
 			// 查找ip地理坐标
 			geoID, err := findGeoID(db, intIP)
@@ -148,6 +161,44 @@ func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 	}
 	if len(insertParam) > 0 {
 		insertSQL := "insert into `ip`(`id`, `ip`, `lnglat_id`, `ip_test_flag`) values "
+		_, err = db.Exec(insertSQL + strings.Join(insertParam, ","))
+	}
+	if err != nil {
+		log.Error(err.Error())
+	}
+	return
+}
+
+func parsePortScan(db *sql.DB, resultLine string) (err error) {
+	result := new([]portScanHost)
+	err = json.Unmarshal([]byte(resultLine), result)
+	if err != nil {
+		fmt.Print(err.Error())
+		return
+	}
+	var updateParam []string
+	var insertParam []string
+	insertParamFormat := "(%d, %s, '%s', '%s', '%s')"
+	for _, h := range *result {
+		intIP := InetAtoN(h.Address)
+		updateParam = append(updateParam, h.Address)
+		for _, p := range h.Ports {
+			insertParam = append(
+				insertParam,
+				fmt.Sprintf(insertParamFormat, intIP, p.PortID, p.Protocol, p.Service, p.Product),
+			)
+		}
+	}
+	if len(updateParam) > 0 {
+		updateSQL := "update `ip` set `port_scan_flag`=1 where id in (%s)"
+		_, err = db.Exec(fmt.Sprintf(updateSQL, strings.Join(updateParam, ",")))
+	}
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+	if len(insertParam) > 0 {
+		insertSQL := "insert into `port`(`ip_id`, `port`, `protocol`, `service`, `product`) values "
 		_, err = db.Exec(insertSQL + strings.Join(insertParam, ","))
 	}
 	if err != nil {
