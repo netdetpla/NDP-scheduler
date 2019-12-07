@@ -141,7 +141,7 @@ func ParseIPTest(db *sql.DB, resultLine string) (err error) {
 			return err
 		}
 		if flag {
-			updateParam = append(updateParam, ip)
+			updateParam = append(updateParam, strconv.FormatInt(intIP, 10))
 		} else {
 			// 查找ip地理坐标
 			geoID, err := findGeoID(db, intIP)
