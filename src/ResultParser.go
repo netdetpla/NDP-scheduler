@@ -242,8 +242,16 @@ func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
 		return nil
 	}
 	id := int(idTemp.Int64)
-	// 写文件
 	dir := "/root/pages/" + strconv.Itoa(id/10000) + "/"
+	htmlPath := dir + strconv.Itoa(id) + ".html"
+	// 更新文件路径
+	updateSQL := "update page set html_path = '?' where id = ?"
+	_, err = db.Exec(updateSQL, htmlPath, id)
+	if err != nil {
+		log.Warning(err.Error())
+		return
+	}
+	// 写文件
 	err = os.Mkdir(dir, 0777)
 	if err != nil && !os.IsExist(err) {
 		fmt.Println(err.Error())
@@ -255,7 +263,6 @@ func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
 		return
 	}
 	html := string(htmlBytes)
-	err = ioutil.WriteFile(dir+strconv.Itoa(id)+".html",
-		[]byte(html), 0644)
+	err = ioutil.WriteFile(htmlPath, []byte(html), 0644)
 	return
 }
