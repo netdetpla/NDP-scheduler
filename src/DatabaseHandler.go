@@ -173,6 +173,8 @@ func insertResult(db *sql.DB, resultLine string, taskID string, table string) (e
 		err = ParseIPTest(db, resultLine)
 	case "port-scan":
 		err = parsePortScan(db, resultLine)
+	case "page-crawl":
+		err = parsePageCrawl(db, resultLine)
 	default:
 		resultSQL := "insert into " + table + " (task_id, result_line) values (?, ?)"
 		_, err = db.Exec(resultSQL, taskID, resultLine)

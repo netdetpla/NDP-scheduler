@@ -2,10 +2,13 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -205,5 +208,38 @@ func parsePortScan(db *sql.DB, resultLine string) (err error) {
 	if err != nil {
 		log.Error(err.Error())
 	}
+	return
+}
+
+func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
+	rs := strings.Split(resultLine, ",")
+	id, err := strconv.Atoi(rs[0])
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	htmlBase64 := rs[1]
+	// 查url
+	updateSQL := "update page set page_flag = 1 where id = ?"
+	_, err = db.Exec(updateSQL, id)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	// 写文件
+	dir := "/root/pages/" + strconv.Itoa(id/10000) + "/"
+	err = os.Mkdir(dir, 0777)
+	if err != nil && !os.IsExist(err) {
+		fmt.Println(err.Error())
+		return
+	}
+	htmlBytes, err := base64.StdEncoding.DecodeString(htmlBase64)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	html := string(htmlBytes)
+	err = ioutil.WriteFile(dir+strconv.Itoa(id)+".html",
+		[]byte(html), 0644)
 	return
 }

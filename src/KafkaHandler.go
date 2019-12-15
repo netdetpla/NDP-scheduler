@@ -27,6 +27,7 @@ var resultTables = map[string]string{
 	"nsTaskFile":          "dnsns",
 	"ipTestTaskFile":      "ip-test",
 	"portScanTaskFile":    "port-scan",
+	"pageCrawlTaskFile":   "page-crawl",
 }
 
 func generateConsumer(topic string) {
