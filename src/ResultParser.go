@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/md5"
 	"database/sql"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -211,21 +213,35 @@ func parsePortScan(db *sql.DB, resultLine string) (err error) {
 	return
 }
 
+func Url2Domain(url string) (domain string) {
+	if strings.Contains(url, "http://") {
+		return url[7:]
+	} else if strings.Contains(url, "https://") {
+		return url[8:]
+	} else {
+		return url
+	}
+}
+
 func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
-	rs := strings.Split(resultLine, ",")
-	id, err := strconv.Atoi(rs[0])
+	point := strings.Index(resultLine, ",")
+	url := Url2Domain(resultLine[0:point])
+	htmlBase64 := resultLine[point+1:]
+	// 查id
+	res := md5.Sum([]byte(url))
+	hashKey := int64(binary.BigEndian.Uint64(res[0:8]))
+	selectSQL := "select id from page use page_domain_hash_index where domain_hash = ? and domain = ?"
+	var idTemp sql.NullInt64
+	err = db.QueryRow(selectSQL, hashKey, url).Scan(&idTemp)
 	if err != nil {
-		log.Error(err.Error())
+		log.Warning(err.Error())
 		return
 	}
-	htmlBase64 := rs[1]
-	// 查url
-	updateSQL := "update page set page_flag = 1 where id = ?"
-	_, err = db.Exec(updateSQL, id)
-	if err != nil {
-		log.Error(err.Error())
-		return
+	if !idTemp.Valid {
+		log.Warning("domain id is not valid.")
+		return nil
 	}
+	id := int(idTemp.Int64)
 	// 写文件
 	dir := "/root/pages/" + strconv.Itoa(id/10000) + "/"
 	err = os.Mkdir(dir, 0777)
