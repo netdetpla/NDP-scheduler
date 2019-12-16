@@ -230,7 +230,7 @@ func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
 	// 查id
 	res := md5.Sum([]byte(url))
 	hashKey := int64(binary.BigEndian.Uint64(res[0:8]))
-	selectSQL := "select id from page use page_domain_hash_index where domain_hash = ? and domain = '?'"
+	selectSQL := "select id from page use index (`page_domain_hash_index`) where domain_hash = ? and domain = ?"
 	var idTemp sql.NullInt64
 	err = db.QueryRow(selectSQL, hashKey, url).Scan(&idTemp)
 	if err != nil {
