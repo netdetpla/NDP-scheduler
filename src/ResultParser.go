@@ -257,6 +257,7 @@ func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
 		fmt.Println(err.Error())
 		return
 	}
+	err = nil
 	htmlBytes, err := base64.StdEncoding.DecodeString(htmlBase64)
 	if err != nil {
 		fmt.Println(err.Error())
