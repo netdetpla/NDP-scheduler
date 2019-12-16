@@ -252,15 +252,15 @@ func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
 		return
 	}
 	// 写文件
-	err = os.Mkdir(dir, 0777)
+	err = os.MkdirAll(dir, 0777)
 	if err != nil && !os.IsExist(err) {
-		fmt.Println(err.Error())
+		log.Warning(err.Error())
 		return
 	}
 	err = nil
 	htmlBytes, err := base64.StdEncoding.DecodeString(htmlBase64)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Warning(err.Error())
 		return
 	}
 	html := string(htmlBytes)
