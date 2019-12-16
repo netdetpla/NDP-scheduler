@@ -245,7 +245,7 @@ func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
 	dir := "/root/pages/" + strconv.Itoa(id/10000) + "/"
 	htmlPath := dir + strconv.Itoa(id) + ".html"
 	// 更新文件路径
-	updateSQL := "update page set html_path = '?' where id = ?"
+	updateSQL := "update page set html_path = ? where id = ?"
 	_, err = db.Exec(updateSQL, htmlPath, id)
 	if err != nil {
 		log.Warning(err.Error())
