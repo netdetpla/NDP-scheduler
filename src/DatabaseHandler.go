@@ -261,7 +261,7 @@ func databaseScanner(databaseInfo *database) {
 	}
 	// 启动定时器
 	//go taskTimer()
-	go imageTimer()
+	//go imageTimer()
 	go executorTimer()
 	scanOpt <- dbOpt{"image", []string{}}
 	scanOpt <- dbOpt{"executor", []string{}}

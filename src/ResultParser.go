@@ -215,9 +215,9 @@ func parsePortScan(db *sql.DB, resultLine string) (err error) {
 
 func Url2Domain(url string) (domain string) {
 	if strings.Contains(url, "http://") {
-		return url[7:]
+		return strings.Split(url[7:], "/")[0]
 	} else if strings.Contains(url, "https://") {
-		return url[8:]
+		return strings.Split(url[8:], "/")[0]
 	} else {
 		return url
 	}
