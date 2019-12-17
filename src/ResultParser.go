@@ -223,11 +223,7 @@ func Url2Domain(url string) (domain string) {
 	}
 }
 
-func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
-	point := strings.Index(resultLine, ",")
-	url := Url2Domain(resultLine[0:point])
-	htmlBase64 := resultLine[point+1:]
-	// 查id
+func findUrl(db *sql.DB, url string) (id int, err error) {
 	res := md5.Sum([]byte(url))
 	hashKey := int64(binary.BigEndian.Uint64(res[0:8]))
 	selectSQL := "select id from page use index (`page_domain_hash_index`) where domain_hash = ? and domain = ?"
@@ -239,9 +235,22 @@ func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
 	}
 	if !idTemp.Valid {
 		log.Warning("domain id is not valid.")
-		return nil
+		return -1, nil
 	}
-	id := int(idTemp.Int64)
+	id = int(idTemp.Int64)
+	return
+}
+
+func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
+	point := strings.Index(resultLine, ",")
+	url := Url2Domain(resultLine[0:point])
+	htmlBase64 := resultLine[point+1:]
+	// 查id
+	id, err := findUrl(db, url)
+	if err != nil || id == -1 {
+		log.Warning(err.Error())
+		return
+	}
 	dir := "/root/pages/" + strconv.Itoa(id/10000) + "/"
 	htmlPath := dir + strconv.Itoa(id) + ".html"
 	// 更新文件路径
@@ -265,5 +274,27 @@ func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
 	}
 	html := string(htmlBytes)
 	err = ioutil.WriteFile(htmlPath, []byte(html), 0644)
+	return
+}
+func parseUrlCrawl(db *sql.DB, resultLine string) (err error) {
+	urls := strings.Split(resultLine, ",")
+	insertFormat := "(%s, %d)"
+	var insertValues []string
+	for _, url := range urls {
+		id, err := findUrl(db, url)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+		if id == -1 {
+			res := md5.Sum([]byte(url))
+			hashKey := int64(binary.BigEndian.Uint64(res[0:8]))
+			insertValues = append(insertValues, fmt.Sprintf(insertFormat, url, hashKey))
+		}
+	}
+	if len(insertValues) > 0 {
+		insertSQL := "insert into `page`(`domain`, `domain_hash`) values "
+		_, err = db.Exec(insertSQL + strings.Join(insertValues, ","))
+	}
 	return
 }
