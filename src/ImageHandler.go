@@ -46,7 +46,6 @@ func imageLoader(imageConf *image) {
 			log.Warning(err.Error())
 			continue
 		}
-		log.Info("tag success")
 		// docker push
 		_, err = cli.ImagePush(
 			ctx,
@@ -56,6 +55,7 @@ func imageLoader(imageConf *image) {
 			log.Warning(err.Error())
 			continue
 		}
+		log.Info("push success")
 		scanOpt <- dbOpt{"loaded", []string{i.imageName, i.tag}}
 		err = os.Remove(imageConf.Path + i.fileName)
 		if err != nil {
