@@ -48,7 +48,10 @@ func imageLoader(imageConf *image) {
 		}
 		log.Info("tag success")
 		// docker push
-		_, err = cli.ImagePush(ctx, "localhost:"+imageConf.RepoPort+"/"+i.imageName+":"+i.tag, types.ImagePushOptions{All: true})
+		_, err = cli.ImagePush(
+			ctx,
+			"localhost:"+imageConf.RepoPort+"/"+i.imageName+":"+i.tag,
+			types.ImagePushOptions{All: true, RegistryAuth: "123"})
 		if err != nil {
 			log.Warning(err.Error())
 			continue
