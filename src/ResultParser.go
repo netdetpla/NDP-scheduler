@@ -284,7 +284,7 @@ func parseUrlCrawl(db *sql.DB, resultLine string) (err error) {
 		id, err := findUrl(db, url)
 		if err != nil {
 			log.Error(err.Error())
-			return
+			return err
 		}
 		if id == -1 {
 			res := md5.Sum([]byte(url))
