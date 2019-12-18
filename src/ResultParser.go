@@ -234,7 +234,6 @@ func findUrl(db *sql.DB, url string) (id int, err error) {
 		return
 	}
 	if err == sql.ErrNoRows || !idTemp.Valid {
-		log.Warning("domain id is not valid.")
 		return -1, nil
 	}
 	id = int(idTemp.Int64)
@@ -277,6 +276,9 @@ func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
 	return
 }
 func parseUrlCrawl(db *sql.DB, resultLine string) (err error) {
+	if resultLine == "" {
+		return nil
+	}
 	urls := strings.Split(resultLine, ",")
 	insertFormat := "(%s, %d)"
 	var insertValues []string
