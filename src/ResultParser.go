@@ -280,7 +280,7 @@ func parseUrlCrawl(db *sql.DB, resultLine string) (err error) {
 		return nil
 	}
 	urls := strings.Split(resultLine, ",")
-	insertFormat := "(%s, %d)"
+	insertFormat := "('%s', %d)"
 	var insertValues []string
 	for _, url := range urls {
 		id, err := findUrl(db, url)
