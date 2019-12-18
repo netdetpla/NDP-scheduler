@@ -229,11 +229,11 @@ func findUrl(db *sql.DB, url string) (id int, err error) {
 	selectSQL := "select id from page use index (`page_domain_hash_index`) where domain_hash = ? and domain = ?"
 	var idTemp sql.NullInt64
 	err = db.QueryRow(selectSQL, hashKey, url).Scan(&idTemp)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		log.Warning(err.Error())
 		return
 	}
-	if !idTemp.Valid {
+	if err == sql.ErrNoRows || !idTemp.Valid {
 		log.Warning("domain id is not valid.")
 		return -1, nil
 	}
