@@ -275,6 +275,7 @@ func parsePageCrawl(db *sql.DB, resultLine string) (err error) {
 	err = ioutil.WriteFile(htmlPath, []byte(html), 0644)
 	return
 }
+
 func parseUrlCrawl(db *sql.DB, resultLine string) (err error) {
 	if resultLine == "" {
 		return nil
@@ -299,4 +300,52 @@ func parseUrlCrawl(db *sql.DB, resultLine string) (err error) {
 		_, err = db.Exec(insertSQL + strings.Join(insertValues, ","))
 	}
 	return
+}
+
+func findDomain2IP(db *sql.DB, domain string, ipStr string) (isExisted bool, err error) {
+	res := md5.Sum([]byte(domain))
+	hashKey := int64(binary.BigEndian.Uint64(res[0:8]))
+	ipInt := InetAtoN(ipStr)
+	selectSQL := "select id from domain_ip use index(domain_ip_domain_hash_index, domain_ip_ip_id_index) " +
+		"where ip_id = ? and domain_hash = ? and domain = ?"
+	var idTemp sql.NullInt64
+	err = db.QueryRow(selectSQL, ipInt, hashKey, domain).Scan(&idTemp)
+	if err != nil && err != sql.ErrNoRows {
+		log.Warning(err.Error())
+		return
+	}
+	if err == sql.ErrNoRows || !idTemp.Valid {
+		return false, nil
+	}
+	return true, nil
+}
+
+func parseDnssecure(db *sql.DB, resultLine string) (err error) {
+	log.Debug(resultLine)
+	results := strings.Split(resultLine, "\n")
+	insertFormat := "('%s', %d, %d)"
+	var insertValues []string
+	for _, r := range results {
+		ls := strings.Split(r, ";")
+		domain := ls[2]
+		as := strings.Split(strings.Split(ls[4], "/")[0], "+")
+		res := md5.Sum([]byte(domain))
+		hashKey := int64(binary.BigEndian.Uint64(res[0:8]))
+		for _, a := range as {
+			isExist, err := findDomain2IP(db, domain, a)
+			if err != nil {
+				log.Warning(err.Error())
+				continue
+			}
+			if !isExist {
+				ipInt := InetAtoN(a)
+				insertValues = append(insertValues, fmt.Sprintf(insertFormat, domain, hashKey, ipInt))
+			}
+		}
+	}
+	if len(insertValues) > 0 {
+		insertSQL := "insert into `domain_ip`(`domain`, `domain_hash`, `ip_id`) values "
+		_, err = db.Exec(insertSQL + strings.Join(insertValues, ","))
+	}
+	return nil
 }

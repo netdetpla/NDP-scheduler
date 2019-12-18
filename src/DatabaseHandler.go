@@ -167,8 +167,6 @@ func insertResult(db *sql.DB, resultLine string, taskID string, table string) (e
 		return
 	}
 	switch table {
-	case "scanservice":
-		err = ParseScanService(db, resultLine)
 	case "ip-test":
 		err = ParseIPTest(db, resultLine)
 	case "port-scan":
@@ -177,6 +175,8 @@ func insertResult(db *sql.DB, resultLine string, taskID string, table string) (e
 		err = parsePageCrawl(db, resultLine)
 	case "url-crawl":
 		err = parseUrlCrawl(db, resultLine)
+	case "dnssecure":
+		err = parseDnssecure(db, resultLine)
 	default:
 		resultSQL := "insert into " + table + " (task_id, result_line) values (?, ?)"
 		_, err = db.Exec(resultSQL, taskID, resultLine)
