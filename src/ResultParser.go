@@ -327,6 +327,9 @@ func parseDnssecure(db *sql.DB, resultLine string) (err error) {
 	var insertValues []string
 	for _, r := range results {
 		ls := strings.Split(r, ";")
+		if len(ls) < 6 {
+			continue
+		}
 		domain := ls[2]
 		as := strings.Split(strings.Split(ls[4], "/")[0], "+")
 		res := md5.Sum([]byte(domain))
